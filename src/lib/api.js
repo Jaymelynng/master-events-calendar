@@ -47,6 +47,49 @@ export const gymsApi = {
 
 // Events API
 export const eventsApi = {
+  // Bulk import for admin workflow
+  async bulkImport(events) {
+    if (!events || !Array.isArray(events) || events.length === 0) {
+      throw new Error('Invalid events data: must be non-empty array');
+    }
+    
+    // Validate each event has required fields
+    for (let i = 0; i < events.length; i++) {
+      const event = events[i];
+      if (!event.gym_id || !event.date || !event.type || !event.event_url) {
+        throw new Error(`Event ${i + 1} missing required fields (gym_id, date, type, event_url)`);
+      }
+      
+      // Validate date format
+      const dateTest = new Date(event.date);
+      if (isNaN(dateTest.getTime())) {
+        throw new Error(`Event ${i + 1} has invalid date format: ${event.date}`);
+      }
+    }
+    
+    try {
+      // Use simple insert instead of upsert to avoid constraint issues
+      const { data, error } = await supabase
+        .from('events')
+        .insert(events)
+        .select();
+      
+      if (error) {
+        console.error('Supabase bulk import error:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      
+      if (!data || data.length === 0) {
+        console.warn('Bulk import returned no data');
+      }
+      
+      return data || [];
+    } catch (networkError) {
+      console.error('Network error during bulk import:', networkError);
+      throw new Error(`Failed to save events: ${networkError.message}`);
+    }
+  },
+
   async getAll(startDate, endDate) {
     let query = supabase
       .from('events_with_gym')

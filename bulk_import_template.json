@@ -1,0 +1,65 @@
+[
+  {
+    "gym_id": "CGP",
+    "title": "Open Gym",
+    "date": "2025-10-01",
+    "time": "10:00 AM - 12:00 PM",
+    "price": null,
+    "type": "OPEN GYM",
+    "event_url": "https://portal.iclasspro.com/capgymhp/camp-details/2478?typeId=81&filters=%7B%22sorting%22:%22name%22%7D&campTypeName=OPEN%20GYM&campTypeNamePlural=OPEN%20GYM"
+  },
+  {
+    "gym_id": "CGP",
+    "title": "Open Gym",
+    "date": "2025-10-02",
+    "time": "10:00 AM - 12:00 PM",
+    "price": null,
+    "type": "OPEN GYM",
+    "event_url": "https://portal.iclasspro.com/capgymhp/camp-details/2479?typeId=81&filters=%7B%22sorting%22:%22name%22%7D&campTypeName=OPEN%20GYM&campTypeNamePlural=OPEN%20GYM"
+  },
+  {
+    "gym_id": "CGP",
+    "title": "Open Gym",
+    "date": "2025-10-03",
+    "time": "10:00 AM - 12:00 PM",
+    "price": null,
+    "type": "OPEN GYM",
+    "event_url": "https://portal.iclasspro.com/capgymhp/camp-details/2480?typeId=81&filters=%7B%22sorting%22:%22name%22%7D&campTypeName=OPEN%20GYM&campTypeNamePlural=OPEN%20GYM"
+  },
+  {
+    "gym_id": "CGP",
+    "title": "Open Gym",
+    "date": "2025-10-04",
+    "time": "10:00 AM - 12:00 PM",
+    "price": null,
+    "type": "OPEN GYM",
+    "event_url": "https://portal.iclasspro.com/capgymhp/camp-details/2477?typeId=81&filters=%7B%22sorting%22:%22name%22%7D&campTypeName=OPEN%20GYM&campTypeNamePlural=OPEN%20GYM"
+  },
+  {
+    "gym_id": "CGP",
+    "title": "Open Gym",
+    "date": "2025-10-05",
+    "time": "10:00 AM - 12:00 PM",
+    "price": null,
+    "type": "OPEN GYM",
+    "event_url": "https://portal.iclasspro.com/capgymhp/camp-details/2481?typeId=81&filters=%7B%22sorting%22:%22name%22%7D&campTypeName=OPEN%20GYM&campTypeNamePlural=OPEN%20GYM"
+  },
+  {
+    "gym_id": "CGP",
+    "title": "Open Gym",
+    "date": "2025-10-06",
+    "time": "10:00 AM - 12:00 PM",
+    "price": null,
+    "type": "OPEN GYM",
+    "event_url": "https://portal.iclasspro.com/capgymhp/camp-details/2482?typeId=81&filters=%7B%22sorting%22:%22name%22%7D&campTypeName=OPEN%20GYM&campTypeNamePlural=OPEN%20GYM"
+  },
+  {
+    "gym_id": "CGP",
+    "title": "Open Gym",
+    "date": "2025-10-07",
+    "time": "10:00 AM - 12:00 PM",
+    "price": null,
+    "type": "OPEN GYM",
+    "event_url": "https://portal.iclasspro.com/capgymhp/camp-details/2483?typeId=81&filters=%7B%22sorting%22:%22name%22%7D&campTypeName=OPEN%20GYM&campTypeNamePlural=OPEN%20GYM"
+  }
+]

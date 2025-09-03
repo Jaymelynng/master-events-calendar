@@ -268,7 +268,13 @@ const EventsDashboard = () => {
   const [copySuccess, setCopySuccess] = useState('');
 
   const [showAddEventModal, setShowAddEventModal] = useState(false);
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [bulkImportData, setBulkImportData] = useState('');
+  const [rawEventListings, setRawEventListings] = useState('');
+  const [rawEventUrls, setRawEventUrls] = useState('');
+  const [bulkImportEventType, setBulkImportEventType] = useState('AUTO_DETECT');
+  const [validationResults, setValidationResults] = useState(null);
   const [newEvent, setNewEvent] = useState({
     gym_id: '',
     title: '',
@@ -632,6 +638,408 @@ const EventsDashboard = () => {
     setShowAddEventModal(true);
   };
 
+  // Auto-Convert Jayme's Raw Data to JSON
+  const convertRawDataToJson = () => {
+    // Check if gyms data is loaded
+    if (!gymsList || gymsList.length === 0) {
+      setCopySuccess('❌ Error: Gym data not loaded yet. Please wait and try again.');
+      setTimeout(() => setCopySuccess(''), 4000);
+      return;
+    }
+    try {
+      // Validate input data
+      if (!rawEventListings.trim()) {
+        throw new Error('Event listings are empty');
+      }
+      if (!rawEventUrls.trim()) {
+        throw new Error('Event URLs are empty');
+      }
+      
+      // Parse event listings - look for the main event title lines only
+      const allLines = rawEventListings.split('\n').map(line => line.trim());
+      const eventLines = allLines.filter(line => {
+        const normalizedLine = line.toLowerCase();
+        // Look for lines that contain event titles with pipe separators and prices
+        return line.length > 0 && 
+               line.includes('|') && 
+               line.includes('$') &&
+               (normalizedLine.includes('gym fun') || 
+                normalizedLine.includes('homeschool') ||
+                normalizedLine.includes('open gym') ||
+                normalizedLine.includes('clinic') ||
+                normalizedLine.includes('night out')) &&
+               !normalizedLine.includes('page ') && // Skip pagination
+               !normalizedLine.includes('found') && // Skip "X events found"
+               !normalizedLine.includes('view full'); // Skip schedule links
+      });
+      
+      if (eventLines.length === 0) {
+        throw new Error('Could not find any event listings in the provided text');
+      }
+      
+      // Parse URLs - extract ONLY from href attributes to avoid duplicates
+      let urlMatches = [];
+      try {
+        // First, try to extract only from href attributes
+        const hrefMatches = rawEventUrls.match(/href="(https:\/\/portal\.iclasspro\.com\/[^"]+)"/g) || [];
+        
+        if (hrefMatches.length > 0) {
+          // Extract the URL from within the href quotes
+          urlMatches = hrefMatches.map(match => {
+            const urlMatch = match.match(/href="([^"]+)"/);
+            return urlMatch ? urlMatch[1] : null;
+          }).filter(url => url !== null);
+        } else {
+          // Fallback: extract all URLs and deduplicate
+          const allUrls = rawEventUrls.match(/https:\/\/portal\.iclasspro\.com\/[^">\s]+/g) || [];
+          urlMatches = [...new Set(allUrls)];
+        }
+        
+        console.log(`Extracted ${urlMatches.length} URLs from href attributes`);
+        
+      } catch (urlError) {
+        console.error('URL parsing error:', urlError);
+        throw new Error('Failed to extract URLs from provided text');
+      }
+      
+      if (urlMatches.length === 0) {
+        throw new Error('Could not find any iClass Pro URLs in the provided text');
+      }
+      
+      // VALIDATION CHECKS
+      const warnings = [];
+      
+      // Check if counts match
+      if (eventLines.length !== urlMatches.length) {
+        warnings.push(`⚠️ MISMATCH: Found ${eventLines.length} events but ${urlMatches.length} URLs`);
+      }
+      
+      // Note: URLs are automatically deduplicated during extraction
+      // (HTML format has same URL in href and display text)
+      
+      // Check if no data found
+      if (eventLines.length === 0) {
+        warnings.push(`❌ NO EVENTS: Could not parse event listings. Check format.`);
+      }
+      if (urlMatches.length === 0) {
+        warnings.push(`❌ NO URLS: Could not extract URLs. Check format.`);
+      }
+      
+      // Show warnings if any
+      if (warnings.length > 0) {
+        const warningMessage = warnings.join('\n');
+        setCopySuccess(`🚨 VALIDATION ISSUES:\n${warningMessage}`);
+        setTimeout(() => setCopySuccess(''), 8000);
+        
+        // Don't proceed if critical errors
+        if (eventLines.length === 0 || urlMatches.length === 0) {
+          return;
+        }
+      }
+      
+      // Detect gym from first URL and get actual UUID
+      let gymId = null;
+      let gymName = 'UNKNOWN GYM';
+      
+      if (urlMatches[0]) {
+        if (urlMatches[0].includes('capgymavery')) gymName = 'Capital Gymnastics Cedar Park';
+        else if (urlMatches[0].includes('capgymhp')) gymName = 'Capital Gymnastics Pflugerville';
+        else if (urlMatches[0].includes('capgymroundrock')) gymName = 'Capital Gymnastics Round Rock';
+        else if (urlMatches[0].includes('rbatascocita')) gymName = 'Rowland Ballard Atascocita';
+        else if (urlMatches[0].includes('rbkingwood')) gymName = 'Rowland Ballard Kingwood';
+        else if (urlMatches[0].includes('houstongymnastics')) gymName = 'Houston Gymnastics Academy';
+        else if (urlMatches[0].includes('estrellagymnastics')) gymName = 'Estrella Gymnastics';
+        else if (urlMatches[0].includes('oasisgymnastics')) gymName = 'Oasis Gymnastics';
+        else if (urlMatches[0].includes('scottsdalegymnastics')) gymName = 'Scottsdale Gymnastics';
+        else if (urlMatches[0].includes('tigar')) gymName = 'Tigar Gymnastics';
+      }
+      
+      // Find the actual gym UUID from gymsList
+      const gym = gymsList.find(g => g.name === gymName);
+      gymId = gym ? gym.id : null;
+      
+      if (!gymId) {
+        warnings.push(`❌ GYM NOT FOUND: Could not find gym "${gymName}" in database`);
+      }
+      
+      // Validate event type selection
+      const validEventTypes = ['OPEN GYM', 'KIDS NIGHT OUT', 'CLINIC'];
+      if (bulkImportEventType !== 'AUTO_DETECT' && !validEventTypes.includes(bulkImportEventType)) {
+        warnings.push(`❌ INVALID EVENT TYPE: "${bulkImportEventType}" is not valid`);
+      }
+      
+      const processedEvents = eventLines.map((line, index) => {
+        // Parse event details from pipe-separated line
+        // Format: "Title | Date | Time | Price"
+        const parts = line.split('|').map(part => part.trim());
+        
+        let title = 'Open Gym Event';
+        let price = null;
+        let date = '2025-09-01';
+        let time = '10:00 AM - 11:30 AM';
+        
+        // Extract title (first part)
+        if (parts[0]) {
+          title = parts[0].trim();
+        }
+        
+        // Event type detection
+        let eventType = 'OPEN GYM'; // Default
+        
+        if (bulkImportEventType === 'AUTO_DETECT') {
+          // Auto-detect event type based on title
+          const titleLower = title.toLowerCase();
+          
+          if (titleLower.includes('clinic') || titleLower.includes('skill')) {
+            eventType = 'CLINIC';
+          } else if (titleLower.includes('night out') || titleLower.includes('kids night') || titleLower.includes('kno')) {
+            eventType = 'KIDS NIGHT OUT';
+          } else if (titleLower.includes('open gym') || titleLower.includes('gym fun') || titleLower.includes('homeschool') || titleLower.includes('free play')) {
+            eventType = 'OPEN GYM';
+          }
+          console.log(`Auto-detected "${title}" as ${eventType}`);
+        } else {
+          // Use manually selected event type
+          eventType = bulkImportEventType;
+          console.log(`Using manual event type: ${eventType} for "${title}"`);
+        }
+        
+        // Extract price (look for $ in any part)
+        const priceMatch = line.match(/\$(\d+)/);
+        if (priceMatch) {
+          price = parseInt(priceMatch[1]);
+        }
+        
+        // Extract time (look for time pattern in any part)
+        const timeMatch = line.match(/(\d{1,2}:\d{2})-(\d{1,2}:\d{2})(am|pm)/i);
+        if (timeMatch) {
+          const startTime = timeMatch[1];
+          const endTime = timeMatch[2];
+          const ampm = timeMatch[3].toUpperCase();
+          time = `${startTime} ${ampm} - ${endTime} ${ampm}`;
+        }
+        
+        // Extract date from parts[1] or search in line
+        const monthMap = {
+          'Jan': '01', 'January': '01',
+          'Feb': '02', 'February': '02', 
+          'Mar': '03', 'March': '03',
+          'Apr': '04', 'April': '04',
+          'May': '05',
+          'Jun': '06', 'June': '06',
+          'Jul': '07', 'July': '07',
+          'Aug': '08', 'August': '08',
+          'Sep': '09', 'Sept': '09', 'September': '09',
+          'Oct': '10', 'October': '10',
+          'Nov': '11', 'November': '11',
+          'Dec': '12', 'December': '12'
+        };
+        
+        // Look in the date part (parts[1]) first, then in full line
+        const datePart = parts[1] || line;
+        const dateMatch = datePart.match(/(\w+)\s+(\d+)/);
+        
+        if (dateMatch) {
+          const monthStr = dateMatch[1];
+          const dayStr = dateMatch[2];
+          
+          if (monthMap[monthStr]) {
+            const month = monthMap[monthStr];
+            const day = dayStr.padStart(2, '0');
+            date = `2025-${month}-${day}`;
+          }
+        }
+        
+        // Additional fallback patterns
+        if (date === '2025-09-01') { // Still default, try other patterns
+          if (line.includes('Sept 5') || line.includes('Sep 5')) date = '2025-09-05';
+          else if (line.includes('Sept 10') || line.includes('September 10')) date = '2025-09-10';
+          else if (line.includes('Sept 12') || line.includes('Sep 12')) date = '2025-09-12';
+          else if (line.includes('Sept 17') || line.includes('September 17')) date = '2025-09-17';
+          else if (line.includes('Sept 19') || line.includes('Sep 19')) date = '2025-09-19';
+          else if (line.includes('Sept 24') || line.includes('September 24')) date = '2025-09-24';
+          else if (line.includes('Sept 26') || line.includes('Sep 26')) date = '2025-09-26';
+        }
+        
+        return {
+          gym_id: gymId,
+          title: title,
+          date: date,
+          time: time,
+          price: price,
+          type: eventType,
+          event_url: urlMatches[index] || ''
+        };
+      });
+      
+      setBulkImportData(JSON.stringify(processedEvents, null, 2));
+      
+      // Show event type assignments in console
+      console.log('🎯 EVENT TYPE ASSIGNMENTS:');
+      processedEvents.forEach((event, index) => {
+        console.log(`${index + 1}. "${event.title}" → ${event.type}`);
+      });
+      
+      // Set validation results for display
+      setValidationResults({
+        eventsFound: eventLines.length,
+        urlsFound: urlMatches.length,
+        duplicateUrls: 0, // Extracted only from href attributes
+        warnings: warnings,
+        gymDetected: gymName,
+        gymId: gymId,
+        eventTypeMode: bulkImportEventType,
+        note: 'URLs extracted from href attributes only (no duplicates)'
+      });
+      
+      setCopySuccess('✅ Raw data converted to JSON! Review and import.');
+      setTimeout(() => setCopySuccess(''), 4000);
+      
+    } catch (error) {
+      console.error('Conversion error:', error);
+      const errorMessage = error.message || 'Unknown conversion error';
+      setCopySuccess(`❌ Conversion Error: ${errorMessage}`);
+      setTimeout(() => setCopySuccess(''), 6000);
+      
+      // Clear validation results on error
+      setValidationResults(null);
+    }
+  };
+
+  // Bulk Import Function for Admin
+  const handleBulkImport = async () => {
+    let validatedEvents = []; // Declare at function scope
+    try {
+      // Parse JSON data from AI-organized format
+      const newEvents = JSON.parse(bulkImportData);
+      
+      // PRE-IMPORT VALIDATION
+      const importWarnings = [];
+      
+      // Check for duplicate events within the import batch
+      const eventKeys = newEvents.map(e => `${e.gym_id}-${e.date}-${e.time}-${e.type}`);
+      const uniqueKeys = [...new Set(eventKeys)];
+      if (uniqueKeys.length !== eventKeys.length) {
+        importWarnings.push(`⚠️ DUPLICATE EVENTS: Found ${eventKeys.length - uniqueKeys.length} duplicate event(s) in import batch`);
+      }
+      
+      // Check for missing required fields
+      const missingFields = [];
+      newEvents.forEach((event, index) => {
+        if (!event.gym_id) missingFields.push(`Event ${index + 1}: gym_id`);
+        if (!event.title) missingFields.push(`Event ${index + 1}: title`);
+        if (!event.date) missingFields.push(`Event ${index + 1}: date`);
+        if (!event.time) missingFields.push(`Event ${index + 1}: time`);
+        if (!event.type) missingFields.push(`Event ${index + 1}: type`);
+        if (!event.event_url) missingFields.push(`Event ${index + 1}: event_url`);
+      });
+      
+      if (missingFields.length > 0) {
+        importWarnings.push(`❌ MISSING FIELDS: ${missingFields.join(', ')}`);
+      }
+      
+      // Check against existing events in database (current events state)
+      const existingDuplicates = [];
+      for (const newEvent of newEvents) {
+        // Check if this new event matches any existing event in the database
+        const duplicate = events.find(existingEvent => 
+          existingEvent && 
+          existingEvent.gym_id === newEvent.gym_id &&
+          existingEvent.date === newEvent.date &&
+          existingEvent.time === newEvent.time &&
+          existingEvent.type === newEvent.type
+        );
+        
+        if (duplicate) {
+          existingDuplicates.push(`${newEvent.title || 'Event'} on ${newEvent.date}`);
+        }
+      }
+      
+      if (existingDuplicates.length > 0) {
+        importWarnings.push(`⚠️ POTENTIAL DATABASE DUPLICATES: ${existingDuplicates.slice(0, 3).join(', ')}${existingDuplicates.length > 3 ? '...' : ''}`);
+      }
+      
+      // Show warnings and ask for confirmation
+      if (importWarnings.length > 0) {
+        const warningMessage = importWarnings.join('\n\n');
+        const shouldContinue = window.confirm(`🚨 IMPORT VALIDATION ISSUES DETECTED:\n\n${warningMessage}\n\nDo you want to continue importing anyway?`);
+        
+        if (!shouldContinue) {
+          setCopySuccess('❌ Import cancelled by user');
+          setTimeout(() => setCopySuccess(''), 3000);
+          return;
+        }
+      }
+      
+      // Validate and process events
+      validatedEvents = newEvents.map(event => {
+        // Ensure date is valid
+        let processedDate = event.date;
+        try {
+          const dateTest = new Date(event.date);
+          if (isNaN(dateTest.getTime())) {
+            throw new Error('Invalid date');
+          }
+        } catch (e) {
+          console.error(`Invalid date for event: ${event.title}`, e);
+          processedDate = new Date().toISOString().split('T')[0]; // Fallback to today
+        }
+
+        return {
+          gym_id: event.gym_id || '',
+          title: event.title || 'Untitled Event',
+          date: processedDate,
+          time: event.time || '12:00 PM - 1:00 PM',
+          price: event.price ? parseFloat(event.price) : null,
+          type: event.type || 'OPEN GYM',
+          event_url: event.event_url || '',
+          day_of_week: new Date(processedDate).toLocaleDateString('en-US', { weekday: 'long' })
+        };
+      });
+      
+      console.log('Starting bulk import with validated events:', validatedEvents);
+      
+      const importResult = await eventsApi.bulkImport(validatedEvents);
+      console.log('Import result:', importResult);
+      
+      console.log('Refreshing events data...');
+      await refetchEvents();
+      console.log('Events refresh completed');
+      
+      setShowBulkImportModal(false);
+      setBulkImportData('');
+      setRawEventListings('');
+      setRawEventUrls('');
+      setBulkImportEventType('AUTO_DETECT');
+      setValidationResults(null);
+      setCopySuccess(`✅ Successfully imported ${validatedEvents.length} events!`);
+      setTimeout(() => setCopySuccess(''), 4000);
+    } catch (error) {
+      console.error('Bulk import error:', error);
+      let errorMessage = 'Unknown import error';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.name === 'SyntaxError') {
+        errorMessage = 'Invalid JSON format in import data';
+      } else if (error.code) {
+        errorMessage = `Database error (${error.code}): ${error.message}`;
+      }
+      
+      // Show detailed error in both console and UI
+      console.error('❌ DETAILED IMPORT ERROR:', {
+        error: error,
+        message: errorMessage,
+        stack: error.stack,
+        validatedEvents: validatedEvents || 'Not created'
+      });
+      
+      alert(`Import Failed!\n\nError: ${errorMessage}\n\nCheck browser console (F12) for details.`);
+      setCopySuccess(`❌ Import Error: ${errorMessage}`);
+      setTimeout(() => setCopySuccess(''), 8000);
+    }
+  };
+
   // Delete Event Function with Logging
   const handleDeleteEvent = async (eventId, eventTitle) => {
     if (!window.confirm(`Are you sure you want to delete "${eventTitle}"? This action cannot be undone.`)) {
@@ -869,6 +1277,185 @@ const EventsDashboard = () => {
                   Delete Event
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Import Modal - Admin Only */}
+      {showBulkImportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-6xl mx-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4" style={{ color: theme.colors.textPrimary }}>
+              🚀 Admin Bulk Import - Jayme's Workflow Converter
+            </h2>
+            
+            {/* Event Type Selection */}
+            <div className="mb-4">
+              <h3 className="font-semibold mb-2 text-orange-800">🎯 Event Category</h3>
+              <div className="bg-orange-50 border border-orange-200 rounded p-3">
+                <select
+                  value={bulkImportEventType}
+                  onChange={(e) => setBulkImportEventType(e.target.value)}
+                  className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-orange-300"
+                >
+                  <option value="AUTO_DETECT">🤖 Auto-Detect from Titles</option>
+                  <option value="OPEN GYM">🤸 Open Gym</option>
+                  <option value="KIDS NIGHT OUT">🌙 Kids Night Out</option>
+                  <option value="CLINIC">⭐ Skill Clinic</option>
+                </select>
+                <div className="text-xs text-orange-700 mt-1">
+                  {bulkImportEventType === 'AUTO_DETECT' 
+                    ? 'Will detect OPEN GYM, KIDS NIGHT OUT, or CLINIC from event titles'
+                    : `All imported events will be set as ${bulkImportEventType}`
+                  }
+                </div>
+              </div>
+            </div>
+
+            {/* Step 1 & 2: Raw Data Input */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+              <div>
+                <h3 className="font-semibold mb-2 text-purple-800">📋 Step 1: Event Listings</h3>
+                <div className="bg-purple-50 border border-purple-200 rounded p-2 mb-2 text-xs">
+                  Paste your copied event listings (titles, dates, times, prices)
+                </div>
+                <textarea
+                  value={rawEventListings}
+                  onChange={(e) => setRawEventListings(e.target.value)}
+                  placeholder={`Paste event listings like:
+Gym Fun Fridays | Sept 12 | 10:00-11:30am | $10
+Homeschool Free Play| September 10 |10:00-11:30am |$10`}
+                  className="w-full h-48 p-3 border rounded-lg text-sm"
+                  style={{ borderColor: theme.colors.accent }}
+                />
+              </div>
+              
+              <div>
+                <h3 className="font-semibold mb-2 text-green-800">🔗 Step 2: Event URLs</h3>
+                <div className="bg-green-50 border border-green-200 rounded p-2 mb-2 text-xs">
+                  Paste your collected URLs from browser extension
+                </div>
+                <textarea
+                  value={rawEventUrls}
+                  onChange={(e) => setRawEventUrls(e.target.value)}
+                  placeholder={`Paste URLs like:
+<a href="https://portal.iclasspro.com/capgymhp/camp-details/2478...">https://...</a>
+<a href="https://portal.iclasspro.com/capgymhp/camp-details/2479...">https://...</a>`}
+                  className="w-full h-48 p-3 border rounded-lg text-sm"
+                  style={{ borderColor: theme.colors.accent }}
+                />
+              </div>
+            </div>
+            
+            {/* Convert Button */}
+            <div className="text-center mb-4">
+              <button
+                onClick={convertRawDataToJson}
+                disabled={!rawEventListings.trim() || !rawEventUrls.trim()}
+                className="px-6 py-3 rounded-lg transition-colors disabled:opacity-50 text-white font-bold"
+                style={{ backgroundColor: theme.colors.warning }}
+              >
+                ⚡ Convert Raw Data to JSON ⚡
+              </button>
+            </div>
+            
+            {/* Validation Results Display */}
+            {validationResults && (
+              <div className="bg-gray-50 border rounded-lg p-4 mb-4">
+                <h3 className="font-semibold mb-2 text-gray-800">🔍 Validation Results:</h3>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                  <div className="text-center">
+                    <div className="font-bold text-lg" style={{ color: theme.colors.primary }}>
+                      {validationResults.eventsFound}
+                    </div>
+                    <div className="text-gray-600">Events Found</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-bold text-lg" style={{ color: theme.colors.primary }}>
+                      {validationResults.urlsFound}
+                    </div>
+                    <div className="text-gray-600">URLs Found</div>
+                  </div>
+                  <div className="text-center">
+                    <div className={`font-bold text-lg ${validationResults.duplicateUrls > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      {validationResults.duplicateUrls}
+                    </div>
+                    <div className="text-gray-600">Duplicate URLs</div>
+                  </div>
+                  <div className="text-center">
+                    <div className={`font-bold text-lg ${validationResults.gymId ? 'text-green-600' : 'text-red-600'}`}>
+                      {validationResults.gymDetected}
+                    </div>
+                    <div className="text-gray-600">Gym Detected</div>
+                    {validationResults.gymId && (
+                      <div className="text-xs text-gray-500">UUID: {validationResults.gymId.slice(0, 8)}...</div>
+                    )}
+                  </div>
+                  <div className="text-center">
+                    <div className="font-bold text-lg text-purple-600">
+                      {validationResults.eventTypeMode === 'AUTO_DETECT' ? '🤖' : validationResults.eventTypeMode}
+                    </div>
+                    <div className="text-gray-600">Event Type</div>
+                    <div className="text-xs text-gray-500">
+                      {validationResults.eventTypeMode === 'AUTO_DETECT' ? 'Auto-Detect' : 'Manual'}
+                    </div>
+                  </div>
+                </div>
+                
+                {validationResults.note && (
+                  <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded">
+                    <div className="text-sm text-blue-700">ℹ️ {validationResults.note}</div>
+                  </div>
+                )}
+                
+                {validationResults.warnings.length > 0 && (
+                  <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                    <div className="font-semibold text-yellow-800 mb-1">⚠️ Warnings:</div>
+                    <ul className="text-sm text-yellow-700 list-disc list-inside">
+                      {validationResults.warnings.map((warning, index) => (
+                        <li key={index}>{warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Step 3: Converted JSON */}
+            <div className="mb-4">
+              <h3 className="font-semibold mb-2 text-blue-800">📝 Step 3: Generated JSON (Review & Import)</h3>
+              <textarea
+                value={bulkImportData}
+                onChange={(e) => setBulkImportData(e.target.value)}
+                placeholder="Converted JSON will appear here..."
+                className="w-full h-64 p-3 border rounded-lg font-mono text-sm"
+                style={{ borderColor: theme.colors.primary }}
+              />
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowBulkImportModal(false);
+                  setBulkImportData('');
+                  setRawEventListings('');
+                  setRawEventUrls('');
+                  setBulkImportEventType('AUTO_DETECT');
+                  setValidationResults(null);
+                }}
+                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkImport}
+                disabled={!bulkImportData.trim()}
+                className="flex-1 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 text-white font-bold"
+                style={{ backgroundColor: theme.colors.primary }}
+              >
+                🚀 Import All Events
+              </button>
             </div>
           </div>
         </div>
@@ -1338,6 +1925,25 @@ const EventsDashboard = () => {
               >
                 <Plus className="w-4 h-4" />
                 Add Event
+              </button>
+
+              {/* Admin Bulk Import - Hidden behind Ctrl+Click */}
+              <button
+                onClick={(e) => {
+                  if (e.ctrlKey) {
+                    setShowBulkImportModal(true);
+                  }
+                }}
+                title="Ctrl+Click for Admin Bulk Import"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all duration-200 hover:scale-105 shadow-sm"
+                style={{ 
+                  backgroundColor: theme.colors.accent,
+                  color: 'white',
+                  borderColor: theme.colors.accent
+                }}
+              >
+                <span className="text-sm">🚀</span>
+                Admin
               </button>
             </div>
           </div>
