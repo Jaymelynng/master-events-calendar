@@ -45,3 +45,4 @@ console.log(template);
 console.log('');
 console.log('📋 STEP 3: Replace the placeholder values with actual data from each URL');
 console.log('📋 STEP 4: Copy the completed JSON into your bulk import tool');
+
