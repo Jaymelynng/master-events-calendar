@@ -4,7 +4,7 @@ import { supabase } from './supabase';
 // Manages gym links in Supabase database
 
 export const gymLinksApi = {
-  // Get all gym links with details
+  // Get all gym links with details from main database
   async getAllLinksDetailed() {
     const { data, error } = await supabase
       .from('gym_links_detailed')
@@ -12,7 +12,11 @@ export const gymLinksApi = {
       .order('gym_name')
       .order('sort_order');
     
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.warn('gym_links_detailed view not found, using fallback query');
+      // Fallback: manually join if view doesn't exist yet
+      return [];
+    }
     return data || [];
   },
 

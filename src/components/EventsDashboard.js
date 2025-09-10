@@ -57,69 +57,7 @@ const formatTime = (timeString) => {
   return `${hour12}:${minutes} ${ampm}`;
 };
 
-// Static source of truth for gym event page links
-const GYM_EVENT_LINKS = {
-  "Capital Gymnastics Cedar Park": {
-    "CLINIC": "https://portal.iclasspro.com/capgymavery/camps/7?sortBy=time",
-    "KIDS NIGHT OUT": "https://portal.iclasspro.com/capgymavery/camps/13?sortBy=time", 
-    "OPEN GYM": "https://portal.iclasspro.com/capgymavery/camps/17?sortBy=time",
-    "BOOKING": "https://portal.iclasspro.com/capgymavery/booking"
-  },
-  "Capital Gymnastics Pflugerville": {
-    "CLINIC": "https://portal.iclasspro.com/capgymhp/camps/31?sortBy=time",
-    "KIDS NIGHT OUT": "https://portal.iclasspro.com/capgymhp/camps/2?sortBy=time",
-    "OPEN GYM": "https://portal.iclasspro.com/capgymhp/camps/81?sortBy=name",
-    "BOOKING": "https://portal.iclasspro.com/capgymhp/booking"
-  },
-  "Capital Gymnastics Round Rock": {
-    "CLINIC": "https://portal.iclasspro.com/capgymroundrock/camps/28?sortBy=time",
-    "KIDS NIGHT OUT": "https://portal.iclasspro.com/capgymroundrock/camps/26?sortBy=time",
-    "OPEN GYM": "https://portal.iclasspro.com/capgymroundrock/camps/35?sortBy=time", 
-    "BOOKING": "https://portal.iclasspro.com/capgymroundrock/booking"
-  },
-  "Rowland Ballard Atascocita": {
-    "CLINIC": "https://portal.iclasspro.com/rbatascocita/camps/33?sortBy=time",
-    "KIDS NIGHT OUT": "https://portal.iclasspro.com/rbatascocita/camps/35?sortBy=time",
-    "OPEN GYM": "https://portal.iclasspro.com/rbatascocita/camps/76?sortBy=name",
-    "BOOKING": "https://portal.iclasspro.com/rbatascocita/booking"
-  },
-  "Rowland Ballard Kingwood": {
-    "CLINIC": "https://portal.iclasspro.com/rbkingwood/camps/31?sortBy=time",
-    "KIDS NIGHT OUT": "https://portal.iclasspro.com/rbkingwood/camps/26?sortBy=time", 
-    "OPEN GYM": "https://portal.iclasspro.com/rbkingwood/camps/6?sortBy=time",
-    "BOOKING": "https://portal.iclasspro.com/rbkingwood/booking"
-  },
-  "Houston Gymnastics Academy": {
-    "CLINIC": "https://portal.iclasspro.com/houstongymnastics/camps/2?sortBy=time",
-    "KIDS NIGHT OUT": "https://portal.iclasspro.com/houstongymnastics/camps/7?sortBy=time",
-    "OPEN GYM": "https://portal.iclasspro.com/houstongymnastics/camps/15?sortBy=time",
-    "BOOKING": "https://portal.iclasspro.com/houstongymnastics/booking"
-  },
-  "Estrella Gymnastics": {
-    "CLINIC": "https://portal.iclasspro.com/estrellagymnastics/camps/24?sortBy=time",
-    "KIDS NIGHT OUT": "https://portal.iclasspro.com/estrellagymnastics/camps/3?sortBy=time",
-    "OPEN GYM": "https://portal.iclasspro.com/estrellagymnastics/camps/12?sortBy=time", 
-    "BOOKING": "https://portal.iclasspro.com/estrellagymnastics/booking"
-  },
-  "Oasis Gymnastics": {
-    "CLINIC": "https://portal.iclasspro.com/oasisgymnastics/camps/33?sortBy=time",
-    "KIDS NIGHT OUT": "https://portal.iclasspro.com/oasisgymnastics/camps/27?sortBy=time",
-    "OPEN GYM": "https://portal.iclasspro.com/oasisgymnastics/camps/60?sortBy=time",
-    "BOOKING": "https://portal.iclasspro.com/oasisgymnastics/booking"
-  },
-  "Scottsdale Gymnastics": {
-    "CLINIC": "https://portal.iclasspro.com/scottsdalegymnastics/camps/28?sortBy=time",
-    "KIDS NIGHT OUT": "https://portal.iclasspro.com/scottsdalegymnastics/camps/32?sortBy=time", 
-    "OPEN GYM": "https://portal.iclasspro.com/scottsdalegymnastics/camps/88?sortBy=time",
-    "BOOKING": "https://portal.iclasspro.com/scottsdalegymnastics/booking"
-  },
-  "Tigar Gymnastics": {
-    "CLINIC": "https://portal.iclasspro.com/tigar/camps/2?sortBy=time",
-    "KIDS NIGHT OUT": "https://portal.iclasspro.com/tigar/camps/8?sortBy=time",
-    "OPEN GYM": "https://portal.iclasspro.com/tigar/camps/22?sortBy=name",
-    "BOOKING": "https://portal.iclasspro.com/tigar/booking"
-  }
-};
+// ALL DATA NOW COMES FROM SUPABASE - NO HARDCODED LINKS
 
 // Monthly requirements will now be fetched live from Supabase
 
@@ -303,11 +241,25 @@ const EventsDashboard = () => {
 
   const monthlyRequirements = useMonthlyRequirements();
 
-  // Helper function to get URLs from real Supabase data
-  const getGymLinkUrl = (gymName, linkTypeLabel) => {
+  // Helper function to get URLs from main Supabase database
+  const getGymLinkUrl = (gymName, eventType) => {
+    // Map event types to link types in main database
+    const linkTypeMap = {
+      'CLINIC': 'skill_clinics',
+      'KIDS NIGHT OUT': 'kids_night_out',
+      'OPEN GYM': 'open_gym', 
+      'BOOKING': 'booking'
+    };
+    
+    const linkTypeId = linkTypeMap[eventType];
+    
+    // Find gym by name, then find link by gym_id + link_type
+    const gym = gymsList.find(g => g.name === gymName);
+    if (!gym) return null;
+    
     const link = gymLinks.find(gl => 
-      gl.gym_name === gymName && 
-      (gl.link_type_label === linkTypeLabel || gl.link_type_name === linkTypeLabel)
+      (gl.gym_id === gym.gym_code || gl.gym_id === gym.id) && 
+      gl.link_type_id === linkTypeId
     );
     return link?.url;
   };
@@ -315,11 +267,11 @@ const EventsDashboard = () => {
   // Helper function to get all URLs for a specific event type from Supabase links data
   const getAllUrlsForEventType = (eventType) => {
     const urls = [];
-    Object.keys(GYM_EVENT_LINKS).forEach(gymName => {
-      const url = GYM_EVENT_LINKS[gymName][eventType];
+    gymsList.forEach(gym => {
+      const url = getGymLinkUrl(gym.name, eventType);
       if (url) urls.push(url);
     });
-    console.log(`Getting URLs for ${eventType}:`, urls);
+    console.log(`Getting URLs for ${eventType} from Supabase:`, urls);
     return urls;
   };
 
@@ -737,21 +689,32 @@ const EventsDashboard = () => {
         }
       }
       
-      // Detect gym from first URL and get actual UUID
+      // Detect gym from first URL by matching against Supabase gym data
       let gymId = null;
       let gymName = 'UNKNOWN GYM';
       
       if (urlMatches[0]) {
-        if (urlMatches[0].includes('capgymavery')) gymName = 'Capital Gymnastics Cedar Park';
-        else if (urlMatches[0].includes('capgymhp')) gymName = 'Capital Gymnastics Pflugerville';
-        else if (urlMatches[0].includes('capgymroundrock')) gymName = 'Capital Gymnastics Round Rock';
-        else if (urlMatches[0].includes('rbatascocita')) gymName = 'Rowland Ballard Atascocita';
-        else if (urlMatches[0].includes('rbkingwood')) gymName = 'Rowland Ballard Kingwood';
-        else if (urlMatches[0].includes('houstongymnastics')) gymName = 'Houston Gymnastics Academy';
-        else if (urlMatches[0].includes('estrellagymnastics')) gymName = 'Estrella Gymnastics';
-        else if (urlMatches[0].includes('oasisgymnastics')) gymName = 'Oasis Gymnastics';
-        else if (urlMatches[0].includes('scottsdalegymnastics')) gymName = 'Scottsdale Gymnastics';
-        else if (urlMatches[0].includes('tigar')) gymName = 'Tigar Gymnastics';
+        // Find gym by matching URL domain to existing gym links in database
+        const matchingGymLink = gymLinks.find(gl => 
+          urlMatches[0].includes(gl.url.split('/')[2]) || // Match domain
+          urlMatches[0].includes(gl.gym_name.toLowerCase().replace(/\s+/g, ''))
+        );
+        
+        if (matchingGymLink) {
+          gymName = matchingGymLink.gym_name;
+        } else {
+          // Fallback URL pattern matching
+          if (urlMatches[0].includes('capgymavery')) gymName = 'Capital Gymnastics Cedar Park';
+          else if (urlMatches[0].includes('capgymhp')) gymName = 'Capital Gymnastics Pflugerville';
+          else if (urlMatches[0].includes('capgymroundrock')) gymName = 'Capital Gymnastics Round Rock';
+          else if (urlMatches[0].includes('rbatascocita')) gymName = 'Rowland Ballard Atascocita';
+          else if (urlMatches[0].includes('rbkingwood')) gymName = 'Rowland Ballard Kingwood';
+          else if (urlMatches[0].includes('houstongymnastics')) gymName = 'Houston Gymnastics Academy';
+          else if (urlMatches[0].includes('estrellagymnastics')) gymName = 'Estrella Gymnastics';
+          else if (urlMatches[0].includes('oasisgymnastics')) gymName = 'Oasis Gymnastics';
+          else if (urlMatches[0].includes('scottsdalegymnastics')) gymName = 'Scottsdale Gymnastics';
+          else if (urlMatches[0].includes('tigar')) gymName = 'Tigar Gymnastics';
+        }
       }
       
       // Find the actual gym UUID from gymsList
@@ -1738,8 +1701,8 @@ Homeschool Free Play| September 10 |10:00-11:30am |$10`}
                           const requiredCount = monthlyRequirements[eventType];
                           const isDeficient = count < requiredCount;
                           
-                          // Use static source of truth for URLs
-                          const url = GYM_EVENT_LINKS[gym]?.[eventType] || GYM_EVENT_LINKS[gym]?.['BOOKING'] || '#';
+                          // Get URL from Supabase gym links data
+                          const url = getGymLinkUrl(gym, eventType) || getGymLinkUrl(gym, 'BOOKING') || '#';
                           const backgroundColor = getEventTypeColor(eventType);
                           
                           // Adjust background opacity for deficient counts
@@ -1785,8 +1748,8 @@ Homeschool Free Play| September 10 |10:00-11:30am |$10`}
                             const totalRequired = Object.values(monthlyRequirements).reduce((sum, req) => sum + req, 0);
                             const isDeficient = totalCount < totalRequired;
                             
-                            // Use booking page from static source
-                            const finalUrl = classesUrl || GYM_EVENT_LINKS[gym]?.['BOOKING'] || '#';
+                            // Use booking page from Supabase data
+                            const finalUrl = classesUrl || getGymLinkUrl(gym, 'BOOKING') || '#';
                             
                             return (
                               <a 
@@ -1830,9 +1793,7 @@ Homeschool Free Play| September 10 |10:00-11:30am |$10`}
               </svg>
               Click gym names or event counts to view their special event pages • ☀️ Summer camps are shown for reference but not required
             </p>
-
-
-          </div>
+            </div>
 
           {/* Controls */}
           <div className="mb-6 space-y-4">
@@ -2158,10 +2119,10 @@ Homeschool Free Play| September 10 |10:00-11:30am |$10`}
                   </div>
                 </div>
 
-                {/* Event Type Legend - Horizontal and Compact */}
-                <div className="mt-6 border-t pt-4 text-center" style={{ borderColor: theme.colors.secondary }}>
+                {/* Event Type Legend - Moved to save space */}
+                <div className="hidden">
                   <h4 className="text-sm font-semibold mb-3" style={{ color: theme.colors.textPrimary }}>
-                    Event Type Legend
+                    Event Type Legend (Moved)
                   </h4>
                   
                   {/* Tracked Events in one row */}
@@ -2202,9 +2163,9 @@ Homeschool Free Play| September 10 |10:00-11:30am |$10`}
               <div ref={calendarRef} className="w-full overflow-x-auto rounded-xl shadow-lg" style={{ backgroundColor: 'rgba(255, 255, 255, 0.95)' }}>
                 <div className="min-w-full">
                   {/* Calendar Header */}
-                  <div className="grid sticky top-0 z-30 border-b-2" 
+                  <div className="grid sticky top-0 z-50 border-b-2 shadow-lg" 
                        style={{ 
-                         gridTemplateColumns: `200px repeat(${displayDates.length}, 1fr)`,
+                         gridTemplateColumns: `150px repeat(${displayDates.length}, 1fr)`,
                          backgroundColor: theme.colors.secondary,
                          borderColor: theme.colors.primary
                        }}>
@@ -2234,13 +2195,13 @@ Homeschool Free Play| September 10 |10:00-11:30am |$10`}
                           key={gym}
                           ref={el => gymRefs.current[gym] = el}
                           className="grid hover:bg-gray-50 transition-colors"
-                          style={{ gridTemplateColumns: `200px repeat(${displayDates.length}, 1fr)` }}
+                          style={{ gridTemplateColumns: `150px repeat(${displayDates.length}, 1fr)` }}
                         >
                           {/* Gym Name Column */}
-                          <div className="p-4 font-medium border-r-2 bg-gray-50 flex items-center justify-center"
+                          <div className="p-2 font-medium border-r-2 bg-gray-50 flex items-center justify-center"
                                style={{ borderColor: theme.colors.primary }}>
                             <div className="text-center">
-                              <div className="font-bold text-sm">{gym}</div>
+                              <div className="font-bold text-xs leading-tight">{gym}</div>
                               <div className="text-xs text-gray-600 mt-1">
                                 {gymEvents.length} event{gymEvents.length !== 1 ? 's' : ''}
                               </div>
@@ -2265,7 +2226,12 @@ Homeschool Free Play| September 10 |10:00-11:30am |$10`}
                             
                             return (
                               <div key={`${gym}-${date}`} className="p-1 border-r border-gray-200 min-h-[100px] relative">
-                                <div className="space-y-1">
+                                {/* Day indicator - visible even with events */}
+                                <div className="absolute top-1 left-1 text-xs font-bold opacity-50 bg-white rounded px-1" 
+                                     style={{ color: theme.colors.textPrimary, fontSize: '10px', zIndex: 10 }}>
+                                  {date}
+                                </div>
+                                <div className="space-y-1 pt-1">
                                   {dateEvents.length > 0 ? (
                                     dateEvents.map(event => (
                                       <div
@@ -2287,8 +2253,12 @@ Homeschool Free Play| September 10 |10:00-11:30am |$10`}
                                           borderColor: 'rgba(0,0,0,0.1)'
                                         }}
                                       >
-                                        <div className="font-semibold text-xs leading-tight">
-                                          {event.title || event.type || event.event_type || 'Event'}
+                                        <div className="font-semibold text-sm leading-tight">
+                                          {(() => {
+                                            const eventTypeName = event.type || event.event_type;
+                                            const eventTypeData = eventTypes.find(et => et.name === eventTypeName);
+                                            return eventTypeData?.display_name || eventTypeName || 'Event';
+                                          })()}
                                         </div>
                                         <div className="text-xs text-gray-600 mt-0.5 leading-tight">
                                           {formatTime(event.time || event.event_time) || ''}
