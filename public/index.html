@@ -13,6 +13,82 @@
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <script src="https://cdn.tailwindcss.com"></script>
     <title>Gymnastics Events Dashboard</title>
+    <script>
+      (function() {
+        const size = 32;
+        const ratio = window.devicePixelRatio || 1;
+        const canvas = document.createElement('canvas');
+        canvas.width = size * ratio;
+        canvas.height = size * ratio;
+        const ctx = canvas.getContext('2d');
+
+        function ensureFaviconLink() {
+          let link = document.querySelector('link[rel="icon"]');
+          if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+          return link;
+        }
+
+        function drawStar(x, y, outerR, innerR, fill, stroke) {
+          ctx.save();
+          ctx.beginPath();
+          let rot = -Math.PI / 2;
+          const spikes = 5;
+          const step = Math.PI / spikes;
+          ctx.moveTo(x, y - outerR);
+          for (let i = 0; i < spikes; i++) {
+            ctx.lineTo(x + Math.cos(rot) * outerR, y + Math.sin(rot) * outerR);
+            rot += step;
+            ctx.lineTo(x + Math.cos(rot) * innerR, y + Math.sin(rot) * innerR);
+            rot += step;
+          }
+          ctx.closePath();
+          ctx.fillStyle = fill;
+          ctx.shadowColor = 'rgba(255,255,200,0.9)';
+          ctx.shadowBlur = 6;
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = stroke;
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        function drawStatic() {
+          const link = ensureFaviconLink();
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.save();
+          ctx.scale(ratio, ratio);
+
+          // background using brand pinks
+          const g = ctx.createRadialGradient(size/2, size/2, 2, size/2, size/2, 15);
+          g.addColorStop(0, '#b48f8f');   // primary
+          g.addColorStop(1, '#cec4c1');   // secondary
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.arc(size/2, size/2, 15, 0, Math.PI*2); ctx.fill();
+
+          // calendar glyph
+          const calX = size/2 - 9;
+          const calY = size/2 - 8;
+          const calW = 18;
+          const calH = 16;
+          ctx.fillStyle = '#ffffff';
+          ctx.strokeStyle = '#8d6e6e';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.roundRect(calX, calY, calW, calH, 3); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = '#b48f8f';
+          ctx.beginPath(); ctx.roundRect(calX, calY, calW, 5, {tl:3,tr:3,br:0,bl:0}); ctx.fill();
+          ctx.fillStyle = '#3bb273';
+          ctx.beginPath(); ctx.arc(calX+5, calY+7, 1.8, 0, Math.PI*2); ctx.fill();
+
+          // sparkle at top-right of circle
+          drawStar(size/2 + 9, size/2 - 9, 5.5, 2.7, '#ffd86b', '#8d6e6e');
+
+          ctx.restore();
+          link.href = canvas.toDataURL('image/png');
+        }
+
+        drawStatic();
+      })();
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

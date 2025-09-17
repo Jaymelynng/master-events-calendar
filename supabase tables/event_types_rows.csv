@@ -1,0 +1,4 @@
+id,name,description,color,is_tracked,created_at,updated_at,minimum_required,display_name
+02eaad04-2743-4496-9c32-74d1ff3a969f,OPEN GYM,Open gym sessions,#10B981,true,2025-07-22 17:24:43.514066+00,2025-07-22 17:24:43.514066+00,1,OPEN GYM
+5a2cc589-b86a-4b80-9ba9-f93a06729c10,KIDS NIGHT OUT,Parent night out events,#8B5CF6,true,2025-07-22 17:24:43.514066+00,2025-07-22 17:24:43.514066+00,2,KNO
+becc1aa8-8833-433f-b6d9-61fe2ac79c55,CLINIC,Skills clinics and special training,#3B82F6,true,2025-07-22 17:24:43.514066+00,2025-07-22 17:24:43.514066+00,1,CLINIC

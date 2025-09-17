@@ -1,0 +1,8 @@
+id,event_id,gym_id,action,field_changed,old_value,new_value,changed_by,changed_at,event_title,event_date
+1,14bbdcbd-c479-4a91-b057-6c7d605d5b7d,TIG,CREATE,all,,"KIDS NIGHT OUT - BOO BASH| Friday, October 24th | 6:30p - 9:30p (Students 5+) on 2025-10-24",Bulk Import,2025-09-17 20:26:22.873004+00,"KIDS NIGHT OUT - BOO BASH| Friday, October 24th | 6:30p - 9:30p (Students 5+)",2025-10-24
+2,13864ca3-8a1d-49de-8361-42a51f701429,CCP,CREATE,all,,"Kids Night Out | Ages 4-13 | October 3, 2025 | 6:30-9:30 pm on 2025-10-03",Bulk Import,2025-09-17 20:30:32.839604+00,"Kids Night Out | Ages 4-13 | October 3, 2025 | 6:30-9:30 pm",2025-10-03
+3,393783e3-cee0-4653-84ea-c5c69e7ddce1,CCP,CREATE,all,,"Kids Night Out | Ages 4-13 | October 24, 2025 | 6:30-9:30 pm on 2025-10-24",Bulk Import,2025-09-17 20:30:32.953814+00,"Kids Night Out | Ages 4-13 | October 24, 2025 | 6:30-9:30 pm",2025-10-24
+4,c8b57fcf-32ab-4ac4-88a8-24c78f7bbe72,CCP,CREATE,all,,"Kids Night Out | Ages 4-13 | November 7, 2025 | 6:30-9:30 pm on 2025-11-07",Bulk Import,2025-09-17 20:30:33.065699+00,"Kids Night Out | Ages 4-13 | November 7, 2025 | 6:30-9:30 pm",2025-11-07
+5,9dd0b09a-23d4-4e92-97b5-7bb74e979fec,CCP,CREATE,all,,"Kids Night Out | Ages 4-13 | November 21, 2025 | 6:30-9:30 pm on 2025-11-21",Bulk Import,2025-09-17 20:30:33.203732+00,"Kids Night Out | Ages 4-13 | November 21, 2025 | 6:30-9:30 pm",2025-11-21
+6,52b87159-9c86-44e6-b990-d412049c5ce0,CRR,CREATE,all,,| Kids Night Out | Ages 4+ | Oct 10th on 2025-10-10,Bulk Import,2025-09-17 20:31:31.070517+00,| Kids Night Out | Ages 4+ | Oct 10th,2025-10-10
+7,fea9d484-6596-4b29-b42f-e571927702e7,CRR,CREATE,all,,| Kids Night Out | Ages 4+ | Oct 24th on 2025-10-24,Bulk Import,2025-09-17 20:31:31.191835+00,| Kids Night Out | Ages 4+ | Oct 24th,2025-10-24

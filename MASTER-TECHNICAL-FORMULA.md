@@ -273,6 +273,13 @@ $env:REACT_APP_SUPABASE_URL="https://xftiwouxpefchwoxxgpf.supabase.co"; $env:REA
 ### Problem: No events showing
 **Check:**
 1. Are you looking at the right month? (September 2025 has your data)
+
+### IMPORTANT: Bulk Import Learnings
+See `BULK_IMPORT_LEARNINGS_2025.md` for detailed fixes and discoveries from September 17, 2025 session including:
+- F12 URL collection method
+- Date parsing fixes
+- Duplicate detection improvements
+- Gym ID structure (uses codes like 'CCP', not UUIDs)
 2. Is the database connection working?
 3. Check browser console (F12) for red errors
 

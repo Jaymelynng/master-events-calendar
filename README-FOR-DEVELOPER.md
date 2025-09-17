@@ -50,13 +50,16 @@
 ├── package.json (dependencies)
 ├── vercel.json (deployment config)
 ├── MASTER-TECHNICAL-FORMULA.md (📋 COMPLETE DOCUMENTATION)
+├── BULK_IMPORT_LEARNINGS_2025.md (📝 Import fixes & discoveries - Sept 2025)
 └── README-FOR-DEVELOPER.md (This file)
 ```
 
-### KEY STATIC DATA SOURCES (IN EVENTSDASHBOARD.JS)
-- **`GYM_EVENT_LINKS`** - Complete verified URLs for all 10 gyms
-- **`MONTHLY_REQUIREMENTS`** - Event minimums (1 Clinic, 2 KNO, 1 Open Gym)
+### KEY DATA SOURCES (100% SUPABASE)
+- **`gym_links` table** - All gym URLs stored in database
+- **`event_types` table** - Event categories with display names (KNO abbreviations)
+- **`monthly_requirements` table** - Event minimums from database
 - **Dynamic event fetching** - All event data from Supabase database
+- **Admin bulk import** - Mass data collection via Ctrl+Click Admin button
 
 ### SUPABASE DATABASE (WORKING)
 - **Connection**: `https://xftiwouxpefchwoxxgpf.supabase.co`
@@ -76,13 +79,16 @@
    $env:REACT_APP_SUPABASE_URL="https://xftiwouxpefchwoxxgpf.supabase.co"; $env:REACT_APP_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmdGl3b3V4cGVmY2h3b3h4Z3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2ODc1MjUsImV4cCI6MjA2NjI2MzUyNX0.jQReOgyjYxOaig_IoJv3jhhPzlfumUcn-vkS1yF9hY4"; npm start
    ```
 
-### CLIENT REQUIREMENTS ✅ COMPLETED
-✅ **Professional UI/UX** - Centered, clean, consistent design  
-✅ **Real-time event calendar** - Shows actual gym events dynamically  
-✅ **All numbers clickable** - Link to correct iClass Pro pages  
-✅ **Add/delete events** - Full CRUD functionality  
-✅ **Monthly requirements** - Visual tracking (1 Clinic, 2 KNO, 1 Open Gym)  
-✅ **Static data sources** - Reliable, maintainable configuration  
+### CLIENT REQUIREMENTS ✅ COMPLETED + ENHANCED
+✅ **Professional UI/UX** - Responsive, modern design with KNO abbreviations
+✅ **Real-time event calendar** - Live Supabase integration with month navigation  
+✅ **All numbers clickable** - 100% Supabase-driven links to iClass Pro pages  
+✅ **Add/delete events** - Full CRUD + bulk import for mass data collection
+✅ **Monthly requirements** - Dynamic tracking from database (configurable)  
+✅ **Admin tools** - Bulk import, validation, link management
+✅ **Data integrity** - Single source of truth, no hardcoded dependencies
+✅ **Automation support** - API discovery, Firecrawl integration tested
+✅ **Production deployment** - Vercel ready with comprehensive documentation  
 ✅ **Bulk actions** - One-click access to all gym pages  
 
 ### CURRENT STATUS: PRODUCTION READY ✅
@@ -95,4 +101,9 @@
 - **Ready for deployment** - .env file configured, all URLs verified
 
 ### 📋 COMPLETE DOCUMENTATION
-**See `DASHBOARD_SOURCE_OF_TRUTH.md` for full technical details, configurations, and architecture.**
+**See `MASTER-TECHNICAL-FORMULA-2025.md` for complete updated documentation including:**
+- Advanced features and admin tools
+- Bulk import system documentation  
+- Database architecture (100% Supabase)
+- Automation capabilities explored
+- Future roadmap and enhancements

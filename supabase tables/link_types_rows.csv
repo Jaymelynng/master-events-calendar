@@ -1,0 +1,5 @@
+id,label,display_label,emoji,category,sort_order,is_active,created_at,updated_at
+booking,Booking,📅 Booking,📅,special,1,true,2025-08-29 22:21:09.010316,2025-08-29 22:21:09.010316
+kids_night_out,Kids Night Out,🌙 Kids Night Out,🌙,special,3,true,2025-08-29 22:21:09.010316,2025-08-29 22:21:09.010316
+open_gym,Open Gym,⭐ Open Gym,⭐,special,4,true,2025-08-29 22:21:09.010316,2025-08-29 22:21:09.010316
+skill_clinics,Skill Clinics,🎯 Skill Clinics,🎯,special,5,true,2025-08-29 22:21:09.010316,2025-08-29 22:21:09.010316

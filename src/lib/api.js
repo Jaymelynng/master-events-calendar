@@ -56,8 +56,8 @@ export const eventsApi = {
     // Validate each event has required fields
     for (let i = 0; i < events.length; i++) {
       const event = events[i];
-      if (!event.gym_id || !event.date || !event.type || !event.event_url) {
-        throw new Error(`Event ${i + 1} missing required fields (gym_id, date, type, event_url)`);
+      if (!event.gym_id || !event.date || !event.type || !event.event_url || !event.title) {
+        throw new Error(`Event ${i + 1} missing required fields (gym_id, title, date, type, event_url)`);
       }
       
       // Validate date format
@@ -68,6 +68,8 @@ export const eventsApi = {
     }
     
     try {
+      console.log('Sending to Supabase:', events);
+      
       // Use simple insert instead of upsert to avoid constraint issues
       const { data, error } = await supabase
         .from('events')

@@ -1,0 +1,41 @@
+id,gym_id,gym_name,link_type_id,link_type_label,link_type_name,url,is_active,sort_order
+8,CCP,Capital Gymnastics Cedar Park,booking,Booking,📅 Booking,https://portal.iclasspro.com/capgymavery/booking,true,1
+21,CPF,Capital Gymnastics Pflugerville,booking,Booking,📅 Booking,https://portal.iclasspro.com/capgymhp/booking,true,1
+34,CRR,Capital Gymnastics Round Rock,booking,Booking,📅 Booking,https://portal.iclasspro.com/capgymroundrock/booking,true,1
+86,EST,Estrella Gymnastics,booking,Booking,📅 Booking,https://portal.iclasspro.com/estrellagymnastics/booking,true,1
+73,HGA,Houston Gymnastics Academy,booking,Booking,📅 Booking,https://portal.iclasspro.com/houstongymnastics/booking,true,1
+99,OAS,Oasis Gymnastics,booking,Booking,📅 Booking,https://portal.iclasspro.com/oasisgymnastics/booking,true,1
+47,RBA,Rowland Ballard Atascocita,booking,Booking,📅 Booking,https://portal.iclasspro.com/rbatascocita/booking,true,1
+60,RBK,Rowland Ballard Kingwood,booking,Booking,📅 Booking,https://portal.iclasspro.com/rbkingwood/booking,true,1
+112,SGT,Scottsdale Gymnastics,booking,Booking,📅 Booking,https://portal.iclasspro.com/scottsdalegymnastics/booking,true,1
+125,TIG,Tigar Gymnastics,booking,Booking,📅 Booking,https://portal.iclasspro.com/tigar/booking,true,1
+36,CRR,Capital Gymnastics Round Rock,kids_night_out,Kids Night Out,🌙 Kids Night Out,https://portal.iclasspro.com/capgymroundrock/camps/26?sortBy=time,true,3
+114,SGT,Scottsdale Gymnastics,kids_night_out,Kids Night Out,🌙 Kids Night Out,https://portal.iclasspro.com/scottsdalegymnastics/camps/32?sortBy=time,true,3
+88,EST,Estrella Gymnastics,kids_night_out,Kids Night Out,🌙 Kids Night Out,https://portal.iclasspro.com/estrellagymnastics/camps/3?sortBy=time,true,3
+75,HGA,Houston Gymnastics Academy,kids_night_out,Kids Night Out,🌙 Kids Night Out,https://portal.iclasspro.com/houstongymnastics/camps/7?sortBy=time,true,3
+101,OAS,Oasis Gymnastics,kids_night_out,Kids Night Out,🌙 Kids Night Out,https://portal.iclasspro.com/oasisgymnastics/camps/27?sortBy=time,true,3
+49,RBA,Rowland Ballard Atascocita,kids_night_out,Kids Night Out,🌙 Kids Night Out,https://portal.iclasspro.com/rbatascocita/camps/35?sortBy=time,true,3
+127,TIG,Tigar Gymnastics,kids_night_out,Kids Night Out,🌙 Kids Night Out,https://portal.iclasspro.com/tigar/camps/8?sortBy=time,true,3
+62,RBK,Rowland Ballard Kingwood,kids_night_out,Kids Night Out,🌙 Kids Night Out,https://portal.iclasspro.com/rbkingwood/camps/26?sortBy=time,true,3
+10,CCP,Capital Gymnastics Cedar Park,kids_night_out,Kids Night Out,🌙 Kids Night Out,https://portal.iclasspro.com/capgymavery/camps/13?sortBy=time,true,3
+23,CPF,Capital Gymnastics Pflugerville,kids_night_out,Kids Night Out,🌙 Kids Night Out,https://portal.iclasspro.com/capgymhp/camps/2?sortBy=time,true,3
+63,RBK,Rowland Ballard Kingwood,open_gym,Open Gym,⭐ Open Gym,https://portal.iclasspro.com/rbkingwood/camps/6?sortBy=time,true,4
+50,RBA,Rowland Ballard Atascocita,open_gym,Open Gym,⭐ Open Gym,https://portal.iclasspro.com/rbatascocita/camps/76?sortBy=name,true,4
+128,TIG,Tigar Gymnastics,open_gym,Open Gym,⭐ Open Gym,https://portal.iclasspro.com/tigar/camps/22?sortBy=time,true,4
+11,CCP,Capital Gymnastics Cedar Park,open_gym,Open Gym,⭐ Open Gym,https://portal.iclasspro.com/capgymavery/camps/17?sortBy=time,true,4
+89,EST,Estrella Gymnastics,open_gym,Open Gym,⭐ Open Gym,https://portal.iclasspro.com/estrellagymnastics/camps/12?sortBy=time,true,4
+102,OAS,Oasis Gymnastics,open_gym,Open Gym,⭐ Open Gym,https://portal.iclasspro.com/oasisgymnastics/camps/60?sortBy=time,true,4
+115,SGT,Scottsdale Gymnastics,open_gym,Open Gym,⭐ Open Gym,https://portal.iclasspro.com/scottsdalegymnastics/camps/5?sortBy=time,true,4
+24,CPF,Capital Gymnastics Pflugerville,open_gym,Open Gym,⭐ Open Gym,https://portal.iclasspro.com/capgymhp/camps/81?sortBy=name,true,4
+76,HGA,Houston Gymnastics Academy,open_gym,Open Gym,⭐ Open Gym,https://portal.iclasspro.com/houstongymnastics/camps/15?sortBy=time,true,4
+37,CRR,Capital Gymnastics Round Rock,open_gym,Open Gym,⭐ Open Gym,https://portal.iclasspro.com/capgymroundrock/camps/35?sortBy=time,true,4
+77,HGA,Houston Gymnastics Academy,skill_clinics,Skill Clinics,🎯 Skill Clinics,https://portal.iclasspro.com/houstongymnastics/camps/2?sortBy=time,true,5
+64,RBK,Rowland Ballard Kingwood,skill_clinics,Skill Clinics,🎯 Skill Clinics,https://portal.iclasspro.com/rbkingwood/camps/31?sortBy=time,true,5
+103,OAS,Oasis Gymnastics,skill_clinics,Skill Clinics,🎯 Skill Clinics,https://portal.iclasspro.com/oasisgymnastics/camps/33?sortBy=time,true,5
+129,TIG,Tigar Gymnastics,skill_clinics,Skill Clinics,🎯 Skill Clinics,https://portal.iclasspro.com/tigar/camps/2?sortBy=time,true,5
+51,RBA,Rowland Ballard Atascocita,skill_clinics,Skill Clinics,🎯 Skill Clinics,https://portal.iclasspro.com/rbatascocita/camps/33?sortBy=time,true,5
+25,CPF,Capital Gymnastics Pflugerville,skill_clinics,Skill Clinics,🎯 Skill Clinics,https://portal.iclasspro.com/capgymhp/camps/31?sortBy=time,true,5
+38,CRR,Capital Gymnastics Round Rock,skill_clinics,Skill Clinics,🎯 Skill Clinics,https://portal.iclasspro.com/capgymroundrock/camps/28?sortBy=time,true,5
+90,EST,Estrella Gymnastics,skill_clinics,Skill Clinics,🎯 Skill Clinics,https://portal.iclasspro.com/estrellagymnastics/camps/24?sortBy=time,true,5
+12,CCP,Capital Gymnastics Cedar Park,skill_clinics,Skill Clinics,🎯 Skill Clinics,https://portal.iclasspro.com/capgymavery/camps/7?sortBy=time,true,5
+116,SGT,Scottsdale Gymnastics,skill_clinics,Skill Clinics,🎯 Skill Clinics,https://portal.iclasspro.com/scottsdalegymnastics/camps/28?sortBy=time,true,5
