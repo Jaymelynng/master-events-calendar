@@ -2809,7 +2809,7 @@ The system will add new events and update any changed events automatically.`;
                         <div
                           key={gym}
                           ref={el => gymRefs.current[gym] = el}
-                          className="grid hover:bg-gray-50 transition-colors"
+                          className="relative grid hover:bg-gray-50 transition-colors"
                           style={{ gridTemplateColumns: `150px repeat(${displayDates.length}, 1fr)` }}
                         >
                           {/* Gym Name Column */}
@@ -2823,6 +2823,67 @@ The system will add new events and update any changed events automatically.`;
                             </div>
                           </div>
                           
+                          {/* Multi-day Event Bars Overlay (e.g., Camps spanning multiple days) */}
+                          {(() => {
+                            try {
+                              const bars = [];
+                              const minDay = displayDates[0];
+                              const maxDay = displayDates[displayDates.length - 1];
+                              (gymEvents || []).forEach(ev => {
+                                const startStr = ev.start_date || ev.date;
+                                const endStr = ev.end_date || ev.date;
+                                if (!startStr || !endStr) return;
+                                const startDt = parseYmdLocal(startStr);
+                                const endDt = parseYmdLocal(endStr);
+                                if (!(startDt instanceof Date) || !(endDt instanceof Date)) return;
+                                if (isNaN(startDt.getTime()) || isNaN(endDt.getTime())) return;
+                                // Only consider spans longer than a single day
+                                if (endDt < startDt) return;
+                                const sameDay = startDt.getFullYear() === endDt.getFullYear() && startDt.getMonth() === endDt.getMonth() && startDt.getDate() === endDt.getDate();
+                                if (sameDay) return;
+                                // Only render portion visible in current view/month
+                                const startDayNum = (startDt.getFullYear() === currentYear && startDt.getMonth() === currentMonth) ? startDt.getDate() : 1;
+                                const endDayNum = (endDt.getFullYear() === currentYear && endDt.getMonth() === currentMonth) ? endDt.getDate() : 31;
+                                // Find indices within displayDates
+                                const startIdx = displayDates.findIndex(d => d >= Math.max(minDay, startDayNum));
+                                let endIdx = -1;
+                                for (let i = displayDates.length - 1; i >= 0; i--) {
+                                  if (displayDates[i] <= Math.min(maxDay, endDayNum)) { endIdx = i; break; }
+                                }
+                                if (startIdx === -1 || endIdx === -1 || startIdx > endIdx) return;
+                                bars.push({
+                                  key: `${ev.id || ev.event_url || ev.title || Math.random()}-${startIdx}-${endIdx}`,
+                                  startCol: startIdx + 1, // grid is 1-based
+                                  endCol: endIdx + 2,     // end is exclusive
+                                  color: getEventTypeColor(ev.type || ev.event_type)
+                                });
+                              });
+                              if (bars.length === 0) return null;
+                              return (
+                                <div className="pointer-events-none absolute inset-y-0 left-0 right-0" style={{ display: 'grid', gridTemplateColumns: `150px repeat(${displayDates.length}, 1fr)` }}>
+                                  <div style={{ gridColumn: '2 / -1', position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${displayDates.length}, 1fr)` }}>
+                                    {bars.map((bar, idx) => (
+                                      <div
+                                        key={bar.key}
+                                        className="rounded border"
+                                        style={{
+                                          gridColumn: `${bar.startCol} / ${bar.endCol}`,
+                                          height: '14px',
+                                          marginTop: `${idx * 16}px`,
+                                          backgroundColor: bar.color,
+                                          borderColor: 'rgba(0,0,0,0.1)',
+                                          opacity: 0.9
+                                        }}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            } catch (_) {
+                              return null;
+                            }
+                          })()}
+
                           {/* Date Columns */}
                           {displayDates.map(date => {
                             const dateEvents = gymEvents.filter(event => {
