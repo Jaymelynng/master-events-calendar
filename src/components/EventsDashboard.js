@@ -2913,51 +2913,55 @@ The system will add new events and update any changed events automatically.`;
                                 
                                 <div className="space-y-1 pt-1">
                                   {dateEvents.length > 0 ? (
-                                    dateEvents.map(event => (
-                                      <div
-                                        key={event.id}
-                                        className="relative group cursor-pointer"
-                                        onMouseEnter={(e) => {
-                                          if (hidePopoverTimeoutRef.current) clearTimeout(hidePopoverTimeoutRef.current);
-                                          setHoveredEvent({ event, position: { x: e.clientX, y: e.clientY } });
-                                        }}
-                                        onMouseLeave={() => {
-                                          if (hidePopoverTimeoutRef.current) clearTimeout(hidePopoverTimeoutRef.current);
-                                          hidePopoverTimeoutRef.current = setTimeout(() => setHoveredEvent(null), 200);
-                                        }}
-                                      >
-                                                                              <div
-                                        className="text-xs p-2 rounded text-gray-700 text-center font-medium hover:scale-105 transition-transform duration-150 border"
-                                        style={{ 
-                                          backgroundColor: getEventTypeColor(event.type || event.event_type),
-                                          borderColor: 'rgba(0,0,0,0.1)'
-                                        }}
-                                      >
-                                        <div className="font-semibold text-sm leading-tight">
-                                          {(() => {
-                                            const eventTypeName = event.type || event.event_type;
-                                            const eventTypeData = eventTypes.find(et => et.name === eventTypeName);
-                                            return eventTypeData?.display_name || eventTypeName || 'Event';
-                                          })()}
-                                        </div>
-                                        <div className="text-xs text-gray-600 mt-0.5 leading-tight">
-                                          {formatTime(event.time || event.event_time) || ''}
-                                        </div>
-                                      </div>
-                                        
-                                        {/* Edit Button - Click to open edit modal */}
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleEditEvent(event);
+                                    dateEvents.map(event => {
+                                      const isCamp = ((event.type || event.event_type || '').toUpperCase() === 'CAMP');
+                                      // In CAMP view, hide per-day camp cards (bars show instead)
+                                      if (selectedEventType === 'CAMP' && isCamp) return null;
+                                      return (
+                                        <div
+                                          key={event.id}
+                                          className="relative group cursor-pointer"
+                                          onMouseEnter={(e) => {
+                                            if (hidePopoverTimeoutRef.current) clearTimeout(hidePopoverTimeoutRef.current);
+                                            setHoveredEvent({ event, position: { x: e.clientX, y: e.clientY } });
                                           }}
-                                          className="absolute top-0 right-0 w-4 h-4 bg-blue-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center hover:bg-blue-600 text-xs"
-                                          title="Edit event"
+                                          onMouseLeave={() => {
+                                            if (hidePopoverTimeoutRef.current) clearTimeout(hidePopoverTimeoutRef.current);
+                                            hidePopoverTimeoutRef.current = setTimeout(() => setHoveredEvent(null), 200);
+                                          }}
                                         >
-                                          ✎
-                                        </button>
-                                      </div>
-                                    ))
+                                          <div
+                                            className="text-xs p-2 rounded text-gray-700 text-center font-medium hover:scale-105 transition-transform duration-150 border"
+                                            style={{ 
+                                              backgroundColor: getEventTypeColor(event.type || event.event_type),
+                                              borderColor: 'rgba(0,0,0,0.1)'
+                                            }}
+                                          >
+                                            <div className="font-semibold text-sm leading-tight">
+                                              {(() => {
+                                                const eventTypeName = event.type || event.event_type;
+                                                const eventTypeData = eventTypes.find(et => et.name === eventTypeName);
+                                                return eventTypeData?.display_name || eventTypeName || 'Event';
+                                              })()}
+                                            </div>
+                                            <div className="text-xs text-gray-600 mt-0.5 leading-tight">
+                                              {formatTime(event.time || event.event_time) || ''}
+                                            </div>
+                                          </div>
+                                          {/* Edit Button - Click to open edit modal */}
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleEditEvent(event);
+                                            }}
+                                            className="absolute top-0 right-0 w-4 h-4 bg-blue-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center hover:bg-blue-600 text-xs"
+                                            title="Edit event"
+                                          >
+                                            ✎
+                                          </button>
+                                        </div>
+                                      );
+                                    })
                                   ) : (
                                     // Show placeholder for debugging
                                     <div className="text-xs text-gray-400 p-1">
