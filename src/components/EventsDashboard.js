@@ -2823,13 +2823,16 @@ The system will add new events and update any changed events automatically.`;
                             </div>
                           </div>
                           
-                          {/* Multi-day Event Bars Overlay (e.g., Camps spanning multiple days) */}
+                          {/* Multi-day Event Bars Overlay (only when viewing CAMPs) */}
                           {(() => {
+                            if (selectedEventType !== 'CAMP') return null;
                             try {
                               const bars = [];
                               const minDay = displayDates[0];
                               const maxDay = displayDates[displayDates.length - 1];
                               (gymEvents || []).forEach(ev => {
+                                const evType = (ev.type || ev.event_type || '').toUpperCase();
+                                if (evType !== 'CAMP') return;
                                 const startStr = ev.start_date || ev.date;
                                 const endStr = ev.end_date || ev.date;
                                 if (!startStr || !endStr) return;
@@ -2860,7 +2863,7 @@ The system will add new events and update any changed events automatically.`;
                               });
                               if (bars.length === 0) return null;
                               return (
-                                <div className="pointer-events-none absolute inset-y-0 left-0 right-0" style={{ display: 'grid', gridTemplateColumns: `150px repeat(${displayDates.length}, 1fr)` }}>
+                                <div className="pointer-events-none absolute inset-y-0 left-0 right-0" style={{ display: 'grid', gridTemplateColumns: `150px repeat(${displayDates.length}, 1fr)`, zIndex: 0 }}>
                                   <div style={{ gridColumn: '2 / -1', position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${displayDates.length}, 1fr)` }}>
                                     {bars.map((bar, idx) => (
                                       <div
@@ -2868,7 +2871,7 @@ The system will add new events and update any changed events automatically.`;
                                         className="rounded border"
                                         style={{
                                           gridColumn: `${bar.startCol} / ${bar.endCol}`,
-                                          height: '14px',
+                                          height: '10px',
                                           marginTop: `${idx * 16}px`,
                                           backgroundColor: bar.color,
                                           borderColor: 'rgba(0,0,0,0.1)',
