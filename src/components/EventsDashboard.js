@@ -221,6 +221,9 @@ const EventsDashboard = () => {
   const [auditHistory, setAuditHistory] = useState([]);
   const [loadingAudit, setLoadingAudit] = useState(false);
   const [selectedGymId, setSelectedGymId] = useState('');
+  
+  // New Admin Portal State (safe addition)
+  const [showAdminPortal, setShowAdminPortal] = useState(false);
   const [newEvent, setNewEvent] = useState({
     gym_id: '',
     title: '',
@@ -256,7 +259,9 @@ const EventsDashboard = () => {
       'CLINIC': 'skill_clinics',
       'KIDS NIGHT OUT': 'kids_night_out',
       'OPEN GYM': 'open_gym', 
-      'BOOKING': 'booking'
+      'BOOKING': 'booking',
+      'camps': 'camps',
+      'camps_half': 'camps_half'
     };
     
     const linkTypeId = linkTypeMap[eventType];
@@ -514,6 +519,10 @@ const EventsDashboard = () => {
       'KIDS NIGHT OUT': '#FFCCCB',           // Coral rose  
       'OPEN GYM': '#C8E6C9',                 // Sage green
       
+      // Camps - Your specified color
+      'CAMP': '#fde685',                     // Warm yellow
+      'CAMPS': '#fde685',                    // Warm yellow (alternative name)
+      
       // Summer Camps (Optional) - Light background colors
       'SUMMER CAMP': '#E1F5FE',              // Ice blue
       'SUMMER CAMP - GYMNASTICS': '#B2DFDB', // Seafoam
@@ -573,7 +582,22 @@ const EventsDashboard = () => {
         price: newEvent.price ? parseFloat(newEvent.price) : null
       };
       
-      await eventsApi.create(eventData);
+      const result = await eventsApi.create(eventData);
+      
+      // Log to audit system
+      if (result && result.id) {
+        await logEventChange(
+          result.id,
+          eventData.gym_id,
+          'CREATE',
+          null,
+          null,
+          null,
+          'Manual Add', // This identifies it was manually added
+          eventData.title,
+          eventData.date
+        );
+      }
       
       // Refresh events list
       await refetchEvents();
@@ -671,11 +695,13 @@ const EventsDashboard = () => {
         let eventType = 'OPEN GYM';
         const typeName = (jsonData.campTypeName || event.name || '').toUpperCase();
         if (typeName.includes('KIDS NIGHT OUT') || typeName.includes('KNO')) {
-          eventType = 'KIDS NIGHT OUT';
+            eventType = 'KIDS NIGHT OUT';
         } else if (typeName.includes('CLINIC')) {
           eventType = 'CLINIC';
         } else if (typeName.includes('OPEN GYM')) {
-          eventType = 'OPEN GYM';
+            eventType = 'OPEN GYM';
+        } else if (typeName.includes('CAMP') || typeName.includes('SCHOOL YEAR')) {
+          eventType = 'CAMP';
         }
         
         // Extract time from schedule
@@ -800,6 +826,75 @@ const EventsDashboard = () => {
   };
 
   // Bulk Import Function for Admin
+  // Consolidate camp events that belong to the same camp
+  const consolidateCampEvents = async (events) => {
+    const campGroups = {};
+    const nonCampEvents = [];
+    
+    // Group camp events by gym and camp name
+    events.forEach(event => {
+      if (event.type === 'CAMP') {
+        // Extract base camp name (everything before first |)
+        const campName = event.title.split('|')[0].trim();
+        const groupKey = `${event.gym_id}-${campName}`;
+        
+        if (!campGroups[groupKey]) {
+          campGroups[groupKey] = [];
+        }
+        campGroups[groupKey].push(event);
+        } else {
+        nonCampEvents.push(event);
+      }
+    });
+    
+    // Consolidate each camp group
+    const consolidatedCamps = [];
+    Object.entries(campGroups).forEach(([groupKey, campEvents]) => {
+      if (campEvents.length === 1) {
+        // Single day camp - use as is
+        consolidatedCamps.push(campEvents[0]);
+      } else {
+        // Multi-day camp - merge into single event
+        const sortedEvents = campEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+        const firstEvent = sortedEvents[0];
+        const lastEvent = sortedEvents[sortedEvents.length - 1];
+        
+        // Create consolidated event
+        const consolidatedEvent = {
+          ...firstEvent,
+          title: firstEvent.title.replace(/\|\s*\w+day,\s*\w+\s+\d{1,2}(?:st|nd|rd|th)?,\s*\d{4}/, `| ${getDateRangeString(firstEvent.date, lastEvent.date)}`),
+          start_date: firstEvent.date,
+          end_date: lastEvent.date,
+          day_of_week: new Date(firstEvent.date).toLocaleDateString('en-US', { weekday: 'long' })
+        };
+        
+        consolidatedCamps.push(consolidatedEvent);
+      }
+    });
+    
+    return [...consolidatedCamps, ...nonCampEvents];
+  };
+  
+  // Helper function to format date ranges
+  const getDateRangeString = (startDate, endDate) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    const startMonth = start.toLocaleDateString('en-US', { month: 'short' });
+    const startDay = start.getDate();
+    const endMonth = end.toLocaleDateString('en-US', { month: 'short' });
+    const endDay = end.getDate();
+    const year = start.getFullYear();
+    
+    if (start.getMonth() === end.getMonth()) {
+      // Same month: "Oct 16-17, 2025"
+      return `${startMonth} ${startDay}-${endDay}, ${year}`;
+    } else {
+      // Different months: "Dec 22, 2025 - Jan 5, 2026"
+      return `${startMonth} ${startDay}, ${year} - ${endMonth} ${endDay}, ${end.getFullYear()}`;
+    }
+  };
+
   const handleBulkImport = async () => {
     const t0 = performance.now();
     let validatedEvents = []; // Declare at function scope
@@ -998,30 +1093,53 @@ The system will add new events and update any changed events automatically.`;
           processedDate = new Date().toISOString().split('T')[0]; // Fallback to today
         }
 
+        // Parse date range for camps
+        let startDate = processedDate;
+        let endDate = processedDate;
+        
+        // Extract date range from camp titles
+        if (event.type === 'CAMP' && event.title) {
+          const dateRangeMatch = event.title.match(/(\w+\s+\d{1,2}(?:st|nd|rd|th)?(?:\s*-\s*\w+\s+\d{1,2}(?:st|nd|rd|th)?)?(?:\s*,\s*\d{4})?)/i);
+          if (dateRangeMatch) {
+            const dateStr = dateRangeMatch[1];
+            // Handle ranges like "Oct 16-17", "Nov 3-4", "Dec 22-Jan 5" etc
+            if (dateStr.includes('-')) {
+              // This is a date range - we'll keep using the single date for now
+              // but mark this as needing consolidation
+            }
+          }
+        }
+
         const finalEvent = {
           gym_id: event.gym_id || '',
           title: event.title || 'Untitled Event',
           date: processedDate,
+          start_date: startDate,
+          end_date: endDate,
           time: event.time || '12:00 PM - 1:00 PM',
           price: event.price ? parseFloat(event.price) : null,
           type: event.type || 'OPEN GYM',
           event_url: event.event_url || '',
-          day_of_week: new Date(processedDate).toLocaleDateString('en-US', { weekday: 'long' })
+          day_of_week: new Date(processedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' })
         };
         
         console.log('Final event to import:', finalEvent);
         return finalEvent;
       });
       
+      // Group camp events by name before importing
+      const consolidatedEvents = await consolidateCampEvents(validatedEvents);
+      console.log(`Consolidated ${validatedEvents.length} individual events into ${consolidatedEvents.length} events`);
+
       // Import new events
-      console.log('Starting bulk import with new events:', validatedEvents);
+      console.log('Starting bulk import with consolidated events:', consolidatedEvents);
       let importResult = null;
-      if (validatedEvents.length > 0) {
-        importResult = await eventsApi.bulkImport(validatedEvents);
-        console.log('Import result:', importResult);
+      if (consolidatedEvents.length > 0) {
+        importResult = await eventsApi.bulkImport(consolidatedEvents);
+      console.log('Import result:', importResult);
         
         // Log CREATE actions for new events
-        for (const newEvent of importResult || validatedEvents) {
+        for (const newEvent of importResult || consolidatedEvents) {
           await logEventChange(
             newEvent.id || 'new',
             newEvent.gym_id,
@@ -1365,6 +1483,22 @@ The system will add new events and update any changed events automatically.`;
             <h2 className="text-xl font-bold mb-4" style={{ color: theme.colors.textPrimary }}>
               🚀 Direct JSON Import - Copy Response from F12
             </h2>
+            
+            {/* Cross-Check Link */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-blue-800">Cross-Check Data:</span>
+                <a
+                  href="https://supabase.com/dashboard/project/xftiwouxpefchwoxxgpf/editor"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors font-medium"
+                >
+                  🗄️ Open Supabase Dashboard
+                </a>
+                </div>
+              <p className="text-xs text-blue-600 mt-1">Click to open your Supabase database and verify existing data before importing</p>
+            </div>
 
             {/* Direct JSON Import */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
@@ -1427,7 +1561,7 @@ The system will add new events and update any changed events automatically.`;
                 style={{ backgroundColor: theme.colors.warning }}
               >
                 ⚡ Convert JSON to Import Format ⚡
-              </button>
+                </button>
             </div>
             
             {/* Validation Results Display */}
@@ -1530,6 +1664,106 @@ The system will add new events and update any changed events automatically.`;
         </div>
       )}
       
+      {/* Magic Control Portal - Secret Feature (Shift+Click) */}
+      {showAdminPortal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-6xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-3xl font-bold text-purple-800 flex items-center gap-3">
+                🪄 Magic Control Center
+                <span className="text-lg bg-purple-100 text-purple-700 px-3 py-1 rounded-full">Power User Mode</span>
+              </h2>
+              <button
+                onClick={() => setShowAdminPortal(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            
+            {/* Tabbed Interface */}
+            <div className="flex-1 flex">
+              {/* Tab Navigation */}
+              <div className="w-48 border-r border-gray-200 pr-4">
+                <div className="space-y-2">
+                  <button 
+                    className="w-full text-left px-4 py-3 rounded-lg bg-purple-100 text-purple-800 font-semibold"
+                  >
+                    📥 Import & Data
+                  </button>
+                  <button 
+                    className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 text-gray-600"
+                    onClick={() => {
+                      setShowAdminPortal(false);
+                      setTimeout(() => {
+                        loadAuditHistory();
+                        setShowAuditHistory(true);
+                      }, 100);
+                    }}
+                  >
+                    🔍 Audit History
+                  </button>
+                  <button 
+                    className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 text-gray-400 cursor-not-allowed"
+                  >
+                    🎨 Magic Manager
+                    <div className="text-xs">Coming Soon</div>
+                  </button>
+                </div>
+              </div>
+              
+              {/* Tab Content */}
+              <div className="flex-1 pl-6">
+                <div className="h-full">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4">📥 Import & Data</h3>
+                  
+                  {/* Quick Add Event */}
+                  <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-blue-800 mb-2">➕ Quick Add Event</h4>
+                    <p className="text-sm text-blue-600 mb-3">Add a single event manually</p>
+                    <button
+                      onClick={() => {
+                        setShowAdminPortal(false);
+                        setTimeout(() => setShowAddEventModal(true), 100);
+                      }}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Add New Event
+                    </button>
+                  </div>
+                  
+                  {/* Bulk Import */}
+                  <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
+                    <h4 className="font-semibold text-green-800 mb-2">🚀 JSON Import (F12 Method)</h4>
+                    <p className="text-sm text-green-600 mb-3">Import multiple events from F12 Copy Response</p>
+                    <button
+                      onClick={() => {
+                        setShowAdminPortal(false);
+                        setTimeout(() => setShowBulkImportModal(true), 100);
+                      }}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      Open JSON Import
+                    </button>
+                  </div>
+                  
+                  {/* Coming Soon Features */}
+                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <h4 className="font-semibold text-gray-800 mb-2">🔮 Coming Soon</h4>
+                    <ul className="text-sm text-gray-600 space-y-1">
+                      <li>• 🗄️ Export Data</li>
+                      <li>• 📊 Import Analytics</li>
+                      <li>• 🧹 Data Cleanup Tools</li>
+                      <li>• 💾 Backup & Restore</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Audit History Modal - Secret Feature */}
       {showAuditHistory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -1697,20 +1931,21 @@ The system will add new events and update any changed events automatically.`;
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
+
           </div>
 
           {/* Dashboard Stats Cards - Now Clickable! */}
-          <div className="w-full mb-8 flex justify-center">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full max-w-5xl px-4">
+          <div className="w-full mb-3 flex justify-center">
+            <div className="flex gap-3 max-w-4xl">
             <button 
               onClick={() => setViewMode('calendar')}
-              className="bg-white rounded-lg shadow-lg p-4 border-l-4 hover:shadow-xl hover:scale-105 transition-all duration-200 text-center"
+              className="bg-white rounded shadow px-3 py-2 border border-gray-200 hover:shadow-md transition-all duration-200 text-center flex-1 min-w-[100px]"
               style={{ borderColor: theme.colors.primary }}
             >
-              <div className="text-3xl font-bold" style={{ color: theme.colors.textPrimary }}>
+              <div className="text-xl font-bold" style={{ color: theme.colors.textPrimary }}>
                 {filteredEvents.length}
               </div>
-              <div className="text-sm" style={{ color: theme.colors.textSecondary }}>
+              <div className="text-sm font-medium" style={{ color: theme.colors.textSecondary }}>
                 Total Events
               </div>
               <div className="text-xs" style={{ color: theme.colors.textSecondary }}>
@@ -1724,13 +1959,13 @@ The system will add new events and update any changed events automatically.`;
                 setSelectedEventType('all');
                 setViewMode('calendar');
               }}
-              className="bg-white rounded-lg shadow-lg p-4 border-l-4 hover:shadow-xl hover:scale-105 transition-all duration-200 text-center"
+              className="bg-white rounded shadow px-3 py-2 border border-gray-200 hover:shadow-md transition-all duration-200 text-center flex-1 min-w-[100px]"
               style={{ borderColor: theme.colors.accent }}
             >
-              <div className="text-3xl font-bold" style={{ color: theme.colors.textPrimary }}>
+              <div className="text-xl font-bold" style={{ color: theme.colors.textPrimary }}>
                 {uniqueGymsWithEvents.length}
               </div>
-              <div className="text-sm" style={{ color: theme.colors.textSecondary }}>
+              <div className="text-sm font-medium" style={{ color: theme.colors.textSecondary }}>
                 Active Gyms
               </div>
               <div className="text-xs" style={{ color: theme.colors.textSecondary }}>
@@ -1743,13 +1978,13 @@ The system will add new events and update any changed events automatically.`;
                 setSelectedEventType('all');
                 setViewMode('table');
               }}
-              className="bg-white rounded-lg shadow-lg p-4 border-l-4 hover:shadow-xl hover:scale-105 transition-all duration-200 text-center"
+              className="bg-white rounded shadow px-3 py-2 border border-gray-200 hover:shadow-md transition-all duration-200 text-center flex-1 min-w-[100px]"
               style={{ borderColor: theme.colors.success }}
             >
-              <div className="text-3xl font-bold" style={{ color: theme.colors.textPrimary }}>
+              <div className="text-xl font-bold" style={{ color: theme.colors.textPrimary }}>
                 {eventTypesFromEvents.length}
               </div>
-              <div className="text-sm" style={{ color: theme.colors.textSecondary }}>
+              <div className="text-sm font-medium" style={{ color: theme.colors.textSecondary }}>
                 Event Types
               </div>
               <div className="text-xs" style={{ color: theme.colors.textSecondary }}>
@@ -1762,13 +1997,13 @@ The system will add new events and update any changed events automatically.`;
                 setSelectedEventType('CLINIC');
                 setViewMode('calendar');
               }}
-              className="bg-white rounded-lg shadow-lg p-4 border-l-4 hover:shadow-xl hover:scale-105 transition-all duration-200 text-center"
+              className="bg-white rounded shadow px-3 py-2 border border-gray-200 hover:shadow-md transition-all duration-200 text-center flex-1 min-w-[100px]"
               style={{ borderColor: theme.colors.warning }}
             >
-              <div className="text-3xl font-bold" style={{ color: theme.colors.textPrimary }}>
+              <div className="text-xl font-bold" style={{ color: theme.colors.textPrimary }}>
                 {filteredEvents.filter(e => e.type === 'CLINIC').length}
               </div>
-              <div className="text-sm" style={{ color: theme.colors.textSecondary }}>
+              <div className="text-sm font-medium" style={{ color: theme.colors.textSecondary }}>
                 Clinics
               </div>
               <div className="text-xs" style={{ color: theme.colors.textSecondary }}>
@@ -1782,13 +2017,13 @@ The system will add new events and update any changed events automatically.`;
               onClick={() => {
                 setViewMode('table');
               }}
-              className="bg-white rounded-lg shadow-lg p-4 border-l-4 hover:shadow-xl hover:scale-105 transition-all duration-200 text-center"
+              className="bg-white rounded shadow px-3 py-2 border border-gray-200 hover:shadow-md transition-all duration-200 text-center flex-1 min-w-[100px]"
               style={{ borderColor: theme.colors.success }}
             >
-              <div className="text-3xl font-bold" style={{ color: theme.colors.textPrimary }}>
+              <div className="text-xl font-bold" style={{ color: theme.colors.textPrimary }}>
                 {allGyms.filter(gym => getMissingEventTypes(gym).length === 0).length}/{allGyms.length}
               </div>
-              <div className="text-sm" style={{ color: theme.colors.textSecondary }}>
+              <div className="text-sm font-medium" style={{ color: theme.colors.textSecondary }}>
                 All Events In
               </div>
               <div className="text-xs" style={{ color: theme.colors.textSecondary }}>
@@ -1798,14 +2033,30 @@ The system will add new events and update any changed events automatically.`;
             </div>
           </div>
 
+          {/* 🪄 Magic Control - Secret Power User Feature (Shift+Click) */}
+          <div className="flex justify-center mb-2">
+            <button
+              onClick={(e) => {
+                if (e.shiftKey) {
+                  setShowAdminPortal(true);
+                }
+              }}
+              title="Shift+Click for Magic Control"
+              className="flex items-center gap-1 px-3 py-1 bg-white rounded border border-purple-300 hover:border-purple-500 hover:bg-purple-50 transition-all duration-200 group opacity-80 hover:opacity-100 text-xs"
+            >
+              <span className="text-sm group-hover:scale-110 transition-transform">🪄</span>
+              <span className="font-medium text-purple-800">Magic Control</span>
+            </button>
+          </div>
+
           {/* 🚀 BULK ACTION BUTTONS - Open All Gyms for Each Event Type */}
-          <div className="bg-white rounded-lg shadow-lg p-6 mb-8 mx-2" style={{ borderColor: '#cec4c1', borderWidth: '1px' }}>
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-6 border border-blue-200">
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <div className="bg-white rounded shadow p-3 mb-3 mx-2" style={{ borderColor: '#cec4c1', borderWidth: '1px' }}>
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded p-2 mb-3 border border-blue-200">
+              <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
                 🚀 Bulk Actions - Open All Gyms
                 <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">One-Click Access</span>
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                 <button
                   onClick={() => {
                     const clinicUrls = getAllUrlsForEventType('CLINIC');
@@ -1815,10 +2066,10 @@ The system will add new events and update any changed events automatically.`;
                       `✨ Successfully opened all ${clinicUrls.length} clinic pages!`
                     );
                   }}
-                  className="flex items-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-purple-200 hover:border-purple-400 hover:bg-purple-50 transition-all duration-200 group"
+                  className="flex flex-col items-center justify-center gap-1 px-3 py-2 bg-white rounded border border-purple-200 hover:border-purple-400 hover:bg-purple-50 transition-all duration-200 group text-center"
                 >
                   <span className="text-xl group-hover:scale-110 transition-transform">⭐</span>
-                  <div className="text-left">
+                  <div>
                     <div className="font-semibold text-purple-800">All Clinics</div>
                     <div className="text-xs text-purple-600">Open all skill clinic pages</div>
                   </div>
@@ -1833,10 +2084,10 @@ The system will add new events and update any changed events automatically.`;
                       `✨ Successfully opened all ${knoUrls.length} Kids Night Out pages!`
                     );
                   }}
-                  className="flex items-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-pink-200 hover:border-pink-400 hover:bg-pink-50 transition-all duration-200 group"
+                  className="flex flex-col items-center justify-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-pink-200 hover:border-pink-400 hover:bg-pink-50 transition-all duration-200 group text-center"
                 >
                   <span className="text-xl group-hover:scale-110 transition-transform">🌙</span>
-                  <div className="text-left">
+                  <div>
                     <div className="font-semibold text-pink-800">All Kids Night Out</div>
                     <div className="text-xs text-pink-600">Open all KNO pages</div>
                   </div>
@@ -1851,10 +2102,10 @@ The system will add new events and update any changed events automatically.`;
                       `✨ Successfully opened all ${openGymUrls.length} open gym pages!`
                     );
                   }}
-                  className="flex items-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-green-200 hover:border-green-400 hover:bg-green-50 transition-all duration-200 group"
+                  className="flex flex-col items-center justify-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-green-200 hover:border-green-400 hover:bg-green-50 transition-all duration-200 group text-center"
                 >
                   <span className="text-xl group-hover:scale-110 transition-transform">🎯</span>
-                  <div className="text-left">
+                  <div>
                     <div className="font-semibold text-green-800">All Open Gym</div>
                     <div className="text-xs text-green-600">Open all open gym pages</div>
                   </div>
@@ -1869,14 +2120,52 @@ The system will add new events and update any changed events automatically.`;
                       `✨ Successfully opened all ${bookingUrls.length} gym booking pages!`
                     );
                   }}
-                  className="flex items-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50 transition-all duration-200 group"
+                  className="flex flex-col items-center justify-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50 transition-all duration-200 group text-center"
                 >
                   <span className="text-xl group-hover:scale-110 transition-transform">🌐</span>
-                  <div className="text-left">
+                  <div>
                     <div className="font-semibold text-orange-800">All Booking</div>
                     <div className="text-xs text-orange-600">Open all gym booking pages</div>
                   </div>
                 </button>
+
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={() => {
+                      const campUrls = getAllUrlsForEventType('camps');
+                      openMultipleTabs(
+                        campUrls,
+                        `🏕️ Opening ${campUrls.length} full day camp pages... (allow pop-ups!)`,
+                        `✨ Successfully opened all ${campUrls.length} full day camp pages!`
+                      );
+                    }}
+                    className="flex flex-col items-center justify-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-teal-200 hover:border-teal-400 hover:bg-teal-50 transition-all duration-200 group text-center"
+                  >
+                    <span className="text-xl group-hover:scale-110 transition-transform">🏕️</span>
+                    <div>
+                      <div className="font-semibold text-teal-800">All Camps</div>
+                      <div className="text-xs text-teal-600">Full day camps</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const halfDayCampUrls = getAllUrlsForEventType('camps_half');
+                      openMultipleTabs(
+                        halfDayCampUrls,
+                        `🕐 Opening ${halfDayCampUrls.length} half day camp pages... (allow pop-ups!)`,
+                        `✨ Successfully opened all ${halfDayCampUrls.length} half day camp pages!`
+                      );
+                    }}
+                    className="flex flex-col items-center justify-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-amber-200 hover:border-amber-400 hover:bg-amber-50 transition-all duration-200 group text-center"
+                  >
+                    <span className="text-xl group-hover:scale-110 transition-transform">🕐</span>
+                    <div>
+                      <div className="font-semibold text-amber-800">Half Day Camps</div>
+                      <div className="text-xs text-amber-600">Half day options</div>
+                    </div>
+                  </button>
+                </div>
               </div>
               
               <div className="mt-3 text-xs text-gray-600 flex items-center gap-1">
@@ -1887,10 +2176,10 @@ The system will add new events and update any changed events automatically.`;
           </div>
 
           {/* Special Event Statistics by Gym */}
-          <div className="bg-white rounded-lg shadow-lg p-6 mb-8 mx-2" style={{ borderColor: '#cec4c1', borderWidth: '1px' }}>
+          <div className="bg-white rounded shadow p-2 mb-2 mx-2" style={{ borderColor: '#cec4c1', borderWidth: '1px' }}>
             {/* Table Header */}
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold mb-2" style={{ color: theme.colors.textPrimary }}>
+            <div className="mb-2">
+              <h2 className="text-lg font-bold mb-1" style={{ color: theme.colors.textPrimary }}>
                 Special Event Statistics by Gym
                 <span className="text-sm font-normal ml-2" style={{ color: theme.colors.textSecondary }}>
                   (Click counts to view event pages)
@@ -1903,7 +2192,7 @@ The system will add new events and update any changed events automatically.`;
                     {monthlyRequirements['CLINIC']} Clinic • {monthlyRequirements['KIDS NIGHT OUT']} KNO • {monthlyRequirements['OPEN GYM']} Open Gym
                   </span>
                 </div>
-                <div className="text-sm" style={{ color: theme.colors.textSecondary }}>
+                <div className="text-sm font-medium" style={{ color: theme.colors.textSecondary }}>
                   {new Date(currentYear, currentMonth).toLocaleDateString('en-US', { 
                     month: 'long', 
                     year: 'numeric' 
@@ -1916,14 +2205,15 @@ The system will add new events and update any changed events automatically.`;
               <table className="min-w-full border border-gray-200">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="p-2 border" style={{ color: theme.colors.textPrimary }}>Gym</th>
+                    <th className="p-1 border text-sm text-center" style={{ color: theme.colors.textPrimary }}>Gym</th>
                     {eventTypes.filter(et => et.is_tracked).map((eventType, i) => (
-                      <th key={i} className="p-2 border" style={{ color: theme.colors.textPrimary }}>
+                      <th key={i} className="p-1 border text-sm text-center" style={{ color: theme.colors.textPrimary }}>
                         {eventType.display_name || eventType.name}
                       </th>
                     ))}
-                    <th className="p-2 border" style={{ color: theme.colors.textPrimary }}>Total Tracked</th>
-                    <th className="p-2 border" style={{ color: theme.colors.textPrimary }}>Missing</th>
+                    <th className="p-1 border text-sm text-center" style={{ color: theme.colors.textPrimary }}>Total Tracked</th>
+                    <th className="p-1 border text-sm text-center" style={{ color: theme.colors.textPrimary }}>Missing</th>
+                    <th className="p-1 border text-sm text-center" style={{ color: theme.colors.textPrimary }}>CAMPS</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1932,8 +2222,8 @@ The system will add new events and update any changed events automatically.`;
                     
                     return (
                       <tr key={i} className="border-b hover:bg-gray-50 transition-colors">
-                        <td className="p-2 border font-medium" style={{ color: theme.colors.textPrimary }}>
-                          <div className="flex items-center gap-2">
+                        <td className="p-1 border font-medium text-sm" style={{ color: theme.colors.textPrimary }}>
+                          <div className="flex items-center justify-center">
                             <button
                               onClick={() => scrollToGym(gym)}
                               className="hover:underline inline-flex items-center gap-1 hover:bg-blue-50 px-2 py-1 rounded transition-colors font-medium cursor-pointer"
@@ -1987,7 +2277,7 @@ The system will add new events and update any changed events automatically.`;
                           }
                           
                           return (
-                            <td key={j} className="p-2 border text-center" style={{ color: theme.colors.textPrimary }}>
+                            <td key={j} className="p-1 border text-center text-sm" style={{ color: theme.colors.textPrimary }}>
                               <a 
                                 href={url} 
                                 target="_blank" 
@@ -2004,7 +2294,7 @@ The system will add new events and update any changed events automatically.`;
                             </td>
                           );
                         })}
-                        <td className="p-2 border text-center" style={{ color: theme.colors.textPrimary }}>
+                        <td className="p-1 border text-center text-sm" style={{ color: theme.colors.textPrimary }}>
                           {(() => {
                             const totalCount = counts[gym]?.total || 0;
                             const classesUrl = getGymLinkUrl(gym, 'Classes') || getGymLinkUrl(gym, 'Programs') || getGymLinkUrl(gym, 'Booking (Special Events)');
@@ -2035,7 +2325,7 @@ The system will add new events and update any changed events automatically.`;
                             );
                           })()}
                         </td>
-                        <td className="p-2 border text-xs">
+                        <td className="p-1 border text-xs text-center">
                           {getMissingEventTypes(gym).length > 0 ? (
                             <span style={{ color: theme.colors.error }}>
                               {getMissingEventTypes(gym).join(', ')}
@@ -2045,6 +2335,99 @@ The system will add new events and update any changed events automatically.`;
                               ✅ All events in
                             </span>
                           )}
+                        </td>
+                        <td className="p-1 border text-center text-xs">
+                          {(() => {
+                            // Check if this gym has both full day and half day camps
+                            const hasFullDay = gymLinks.some(gl => 
+                              (gl.gym_id === gym.gym_code || gl.gym_id === gym.id) && 
+                              gl.link_type_id === 'camps'
+                            );
+                            const hasHalfDay = gymLinks.some(gl => 
+                              (gl.gym_id === gym.gym_code || gl.gym_id === gym.id) && 
+                              gl.link_type_id === 'camps_half'
+                            );
+                            
+                            const fullDayUrl = gymLinks.find(gl => 
+                              (gl.gym_id === gym.gym_code || gl.gym_id === gym.id) && 
+                              gl.link_type_id === 'camps'
+                            )?.url;
+                            const halfDayUrl = gymLinks.find(gl => 
+                              (gl.gym_id === gym.gym_code || gl.gym_id === gym.id) && 
+                              gl.link_type_id === 'camps_half'
+                            )?.url;
+                            
+                            // Count actual camp events
+                            const campEvents = events.filter(event => 
+                              (event.gym_id === gym.gym_code || event.gym_id === gym.id) &&
+                              (event.type?.toLowerCase().includes('camp') || 
+                               event.title?.toLowerCase().includes('camp'))
+                            );
+                            const campCount = campEvents.length;
+                            
+                            if (hasFullDay && hasHalfDay) {
+                              // Split clickable areas for gyms with both types
+                              return (
+                                <div className="flex items-center justify-center gap-1">
+                                  <a 
+                                    href={fullDayUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="px-2 py-1 rounded text-sm font-semibold hover:bg-blue-100 transition-colors cursor-pointer"
+                                    style={{ 
+                                      backgroundColor: '#f0f9ff',
+                                      color: '#0369a1'
+                                    }}
+                                    title="Full Day Camps"
+                                  >
+                                    🏕️ Full
+                                  </a>
+                                  <span className="text-gray-400">|</span>
+                                  <a 
+                                    href={halfDayUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="px-2 py-1 rounded text-sm font-semibold hover:bg-amber-100 transition-colors cursor-pointer"
+                                    style={{ 
+                                      backgroundColor: '#fef3c7',
+                                      color: '#d97706'
+                                    }}
+                                    title="Half Day Camps"
+                                  >
+                                    🕐 Half
+                                  </a>
+                                </div>
+                              );
+                            } else if (hasFullDay) {
+                              // Single clickable area for full day only
+                              return (
+                                <a 
+                                  href={fullDayUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="px-2 py-1 rounded text-sm font-semibold hover:bg-blue-100 transition-colors cursor-pointer inline-block"
+                                  style={{ 
+                                    backgroundColor: '#f0f9ff',
+                                    color: '#0369a1'
+                                  }}
+                                  title="Full Day Camps"
+                                >
+                                  🏕️ Camps
+                                </a>
+                              );
+                            } else {
+                              // No camp links available
+                              return (
+                                <span className="px-2 py-1 rounded text-sm" 
+                                      style={{ 
+                                        backgroundColor: '#f3f4f6',
+                                        color: '#6b7280'
+                                      }}>
+                                  -
+                                </span>
+                              );
+                            }
+                          })()}
                         </td>
                       </tr>
                     );
@@ -2061,19 +2444,19 @@ The system will add new events and update any changed events automatically.`;
             </div>
 
           {/* Controls */}
-          <div className="mb-6 space-y-4">
+          <div className="mb-2 space-y-2">
             {/* Month Navigation */}
-            <div ref={monthNavRef} className="flex justify-center items-center gap-4 mb-4">
+            <div ref={monthNavRef} className="flex items-center justify-center gap-1 mb-2">
               <button
                 onClick={goToPreviousMonth}
-                className="flex items-center gap-2 px-4 py-2 rounded-full text-white transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                className="flex items-center gap-1 px-3 py-1 rounded-full text-white transition-all duration-200 hover:scale-105 hover:shadow-md text-sm"
                 style={{ backgroundColor: theme.colors.primary }}
               >
                 <ChevronLeft className="w-4 h-4" />
                 Previous
               </button>
               
-              <h2 className="text-2xl font-bold px-6 py-2 rounded-full text-white shadow-md"
+              <h2 className="text-lg font-bold px-4 py-1 rounded-full text-white shadow-md"
                   style={{ backgroundColor: theme.colors.accent }}>
                 {new Date(currentYear, currentMonth).toLocaleDateString('en-US', { 
                   month: 'long', 
@@ -2083,7 +2466,7 @@ The system will add new events and update any changed events automatically.`;
               
               <button
                 onClick={goToNextMonth}
-                className="flex items-center gap-2 px-4 py-2 rounded-full text-white transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                className="flex items-center gap-1 px-3 py-1 rounded-full text-white transition-all duration-200 hover:scale-105 hover:shadow-md text-sm"
                 style={{ backgroundColor: theme.colors.primary }}
               >
                 Next
@@ -2091,14 +2474,29 @@ The system will add new events and update any changed events automatically.`;
               </button>
             </div>
 
-            {/* Filters Row */}
-            <div className="flex flex-wrap gap-4 justify-center items-center">
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            {/* ADD EVENT - Centered Under Header */}
+            <div className="flex justify-center mb-2">
+              <button
+                onClick={() => setShowAddEventModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105 shadow-md font-medium text-sm"
+                style={{ 
+                  backgroundColor: theme.colors.primary,
+                  color: 'white'
+                }}
+              >
+                <Plus className="w-4 h-4" />
+                ADD EVENT
+              </button>
+            </div>
+
+            {/* All Controls in One Row */}
+            <div className="flex justify-center items-end gap-3 mb-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Gym:</label>
                 <select
                   value={selectedGym}
                   onChange={(e) => setSelectedGym(e.target.value)}
-                  className="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-300 focus:border-pink-400 bg-white shadow-sm"
+                  className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-300 focus:border-pink-400 bg-white shadow-sm min-w-[140px]"
                 >
                   <option value="all">All Gyms</option>
                   {gymsList.map(gym => (
@@ -2107,14 +2505,14 @@ The system will add new events and update any changed events automatically.`;
                 </select>
               </div>
 
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Category:</label>
                 <select
                   value={selectedEventType}
                   onChange={(e) => setSelectedEventType(e.target.value)}
-                  className="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-300 focus:border-pink-400 bg-white shadow-sm"
+                  className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-300 focus:border-pink-400 bg-white shadow-sm min-w-[140px]"
                 >
-                  <option value="all">All Event Types</option>
+                  <option value="all">All Events</option>
                   {eventTypesFromEvents.map(type => (
                     <option key={type} value={type}>{type}</option>
                   ))}
@@ -2128,7 +2526,7 @@ The system will add new events and update any changed events automatically.`;
                   placeholder="Search events..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-300 focus:border-pink-400 bg-white shadow-sm"
+                  className="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-300 focus:border-pink-400 bg-white shadow-sm w-48"
                 />
               </div>
 
@@ -2139,42 +2537,63 @@ The system will add new events and update any changed events automatically.`;
                 {viewMode === 'calendar' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
                 {viewMode === 'calendar' ? 'Table View' : 'Calendar View'}
               </button>
+            </div>
 
+            {/* Event Types - All Filter Buttons */}
+            <div className="flex justify-center items-center gap-2 mb-2">
               <button
-                onClick={() => setShowAddEventModal(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-200 hover:scale-105 shadow-sm"
-                style={{ 
-                  backgroundColor: theme.colors.primary,
-                  color: 'white',
-                  borderColor: theme.colors.primary
-                }}
+                onClick={() => setSelectedEventType('all')}
+                className={`flex items-center gap-1 px-3 py-1 rounded cursor-pointer border transition-all text-sm ${
+                  selectedEventType === 'all' 
+                    ? 'border-gray-500 shadow-md bg-gray-100 font-semibold' 
+                    : 'border-gray-300 bg-white hover:bg-gray-50'
+                }`}
               >
-                <Plus className="w-4 h-4" />
-                Add Event
+                ALL
               </button>
 
-              {/* Admin Bulk Import - Hidden behind Ctrl+Click */}
               <button
-                onClick={(e) => {
-                  if (e.ctrlKey) {
-                    setShowBulkImportModal(true);
-                  }
-                }}
-                title="Ctrl+Click for Admin Bulk Import"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all duration-200 hover:scale-105 shadow-sm"
-                style={{ 
-                  backgroundColor: theme.colors.accent,
-                  color: 'white',
-                  borderColor: theme.colors.accent
-                }}
+                onClick={() => setSelectedEventType('CLINIC')}
+                className={`flex items-center gap-1 px-3 py-1 rounded cursor-pointer border transition-all text-sm ${
+                  selectedEventType === 'CLINIC' ? 'border-purple-400 shadow-md' : 'border-transparent'
+                }`} 
+                style={{ backgroundColor: '#F3E8FF' }}
               >
-                <span className="text-sm">🚀</span>
-                Admin
+                CLINIC
+              </button>
+              
+              <button 
+                onClick={() => setSelectedEventType('KIDS NIGHT OUT')}
+                className={`flex items-center gap-1 px-3 py-1 rounded cursor-pointer border transition-all text-sm ${
+                  selectedEventType === 'KIDS NIGHT OUT' ? 'border-pink-400 shadow-md' : 'border-transparent'
+                }`} 
+                style={{ backgroundColor: '#FFCCCB' }}
+              >
+                KNO
+              </button>
+              
+              <button 
+                onClick={() => setSelectedEventType('OPEN GYM')}
+                className={`flex items-center gap-1 px-3 py-1 rounded cursor-pointer border transition-all text-sm ${
+                  selectedEventType === 'OPEN GYM' ? 'border-green-400 shadow-md' : 'border-transparent'
+                }`} 
+                style={{ backgroundColor: '#C8E6C9' }}
+              >
+                OPEN GYM
+              </button>
+              
+              <button 
+                onClick={() => setSelectedEventType('CAMP')}
+                className={`flex items-center gap-1 px-3 py-1 rounded cursor-pointer border transition-all text-sm ${
+                  selectedEventType === 'CAMP' ? 'border-yellow-400 shadow-md' : 'border-transparent'
+                }`} 
+                style={{ backgroundColor: '#fde685' }}
+              >
+                CAMP
               </button>
             </div>
-          </div>
 
-        
+          </div>
 
         {/* Table View */}
         {viewMode === 'table' && (
@@ -2268,31 +2687,19 @@ The system will add new events and update any changed events automatically.`;
 
         {/* Calendar View */}
         {viewMode === 'calendar' && (
-            <div className="space-y-6">
-              {/* Calendar Info Panel */}
-              <div className="bg-white rounded-lg shadow-lg p-6 mx-2">
-                <div className="flex items-center justify-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <h3 className="text-lg font-semibold" style={{ color: theme.colors.textPrimary }}>
-                      Calendar View
+            <div className="space-y-2">
+              {/* Calendar Controls - Clean & Centered */}
+              <div className="text-center mb-2">
+                <h3 className="text-base font-semibold mb-2" style={{ color: theme.colors.textPrimary }}>
+                  Calendar View:
                     </h3>
-                    <div className="text-sm px-3 py-1 rounded-full" style={{ backgroundColor: theme.colors.secondary, color: theme.colors.textPrimary }}>
-                      {calendarView === 'firstHalf' && `Days 1-15`}
-                      {calendarView === 'secondHalf' && `Days 16-${getDaysInMonth(currentYear, currentMonth)}`}
-                      {calendarView === 'full' && `Full Month (1-${getDaysInMonth(currentYear, currentMonth)})`}
-                      {calendarView === 'week1' && `Week 1 (Days 1-7)`}
-                      {calendarView === 'week2' && `Week 2 (Days 8-14)`}
-                      {calendarView === 'week3' && `Week 3 (Days 15-21)`}
-                      {calendarView === 'week4' && `Week 4+ (Days 22-${getDaysInMonth(currentYear, currentMonth)})`}
-                    </div>
-                    <div className="flex flex-wrap items-center justify-center gap-4">
-                      <div className="flex items-center gap-0">
+                
+                {/* Main view buttons */}
+                <div className="flex justify-center gap-2 mb-2">
                         <button
                           onClick={() => handleCalendarViewChange('firstHalf')}
-                          className={`px-3 py-1 rounded-l-full text-sm font-medium transition-all duration-200 ${
-                            calendarView === 'firstHalf'
-                              ? 'text-white shadow-lg'
-                              : 'text-gray-600 bg-white border hover:shadow-md'
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      calendarView === 'firstHalf' ? 'text-white shadow-lg' : 'text-gray-600 bg-white border hover:shadow-md'
                           }`}
                           style={calendarView === 'firstHalf' ? { backgroundColor: theme.colors.primary } : {}}
                         >
@@ -2300,37 +2707,31 @@ The system will add new events and update any changed events automatically.`;
                         </button>
                         <button
                           onClick={() => handleCalendarViewChange('secondHalf')}
-                          className={`px-3 py-1 rounded-r-full text-sm font-medium transition-all duration-200 ${
-                            calendarView === 'secondHalf'
-                              ? 'text-white shadow-lg'
-                              : 'text-gray-600 bg-white border hover:shadow-md'
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      calendarView === 'secondHalf' ? 'text-white shadow-lg' : 'text-gray-600 bg-white border hover:shadow-md'
                           }`}
                           style={calendarView === 'secondHalf' ? { backgroundColor: theme.colors.primary } : {}}
                         >
-                          Days 16-{getDaysInMonth(currentYear, currentMonth)}
+                    Days 16-30
                         </button>
-                      </div>
-                      
                       <button
                         onClick={() => handleCalendarViewChange('full')}
-                        className={`px-3 py-1 rounded-full text-sm font-medium transition-all duration-200 ${
-                          calendarView === 'full'
-                            ? 'text-white shadow-lg'
-                            : 'text-gray-600 bg-white border hover:shadow-md'
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      calendarView === 'full' ? 'text-white shadow-lg' : 'text-gray-600 bg-white border hover:shadow-md'
                         }`}
                         style={calendarView === 'full' ? { backgroundColor: theme.colors.primary } : {}}
                       >
                         Full Month
                       </button>
+                </div>
 
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-500 mr-1">Quick:</span>
+                {/* Quick weeks */}
+                <div className="flex justify-center items-center gap-2">
+                  <span className="text-sm text-gray-600 mr-2">Quick:</span>
                         <button
                           onClick={() => handleCalendarViewChange('week1')}
-                          className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 ${
-                            calendarView === 'week1'
-                              ? 'text-white shadow-md'
-                              : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
+                    className={`px-3 py-1 rounded text-sm font-medium transition-all duration-200 ${
+                      calendarView === 'week1' ? 'text-white shadow-md' : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
                           }`}
                           style={calendarView === 'week1' ? { backgroundColor: theme.colors.accent } : {}}
                         >
@@ -2338,10 +2739,8 @@ The system will add new events and update any changed events automatically.`;
                         </button>
                         <button
                           onClick={() => handleCalendarViewChange('week2')}
-                          className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 ${
-                            calendarView === 'week2'
-                              ? 'text-white shadow-md'
-                              : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
+                    className={`px-3 py-1 rounded text-sm font-medium transition-all duration-200 ${
+                      calendarView === 'week2' ? 'text-white shadow-md' : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
                           }`}
                           style={calendarView === 'week2' ? { backgroundColor: theme.colors.accent } : {}}
                         >
@@ -2349,10 +2748,8 @@ The system will add new events and update any changed events automatically.`;
                         </button>
                         <button
                           onClick={() => handleCalendarViewChange('week3')}
-                          className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 ${
-                            calendarView === 'week3'
-                              ? 'text-white shadow-md'
-                              : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
+                    className={`px-3 py-1 rounded text-sm font-medium transition-all duration-200 ${
+                      calendarView === 'week3' ? 'text-white shadow-md' : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
                           }`}
                           style={calendarView === 'week3' ? { backgroundColor: theme.colors.accent } : {}}
                         >
@@ -2360,57 +2757,19 @@ The system will add new events and update any changed events automatically.`;
                         </button>
                         <button
                           onClick={() => handleCalendarViewChange('week4')}
-                          className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 ${
-                            calendarView === 'week4'
-                              ? 'text-white shadow-md'
-                              : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
+                    className={`px-3 py-1 rounded text-sm font-medium transition-all duration-200 ${
+                      calendarView === 'week4' ? 'text-white shadow-md' : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
                           }`}
                           style={calendarView === 'week4' ? { backgroundColor: theme.colors.accent } : {}}
                         >
                           Week 4+
                         </button>
-                      </div>
                     </div>
                   </div>
 
-                  {/* Centered Add Event Button */}
-                  <div className="flex items-center justify-center gap-2 mt-4">
-                    <Plus className="w-4 h-4" style={{ color: theme.colors.primary }} />
-                    <button 
-                      className="px-4 py-2 rounded-lg text-white font-medium hover:scale-105 transition-transform"
-                      style={{ backgroundColor: theme.colors.primary }}
-                    >
-                      Add Event
-                    </button>
-                  </div>
-                </div>
-
-                {/* Event Type Legend - Compact in controls */}
-                <div className="flex items-center justify-center gap-6 py-3 bg-gray-50 rounded-lg border">
-                  <span className="text-xs font-medium text-gray-600">Event Types:</span>
-                  <div className="flex items-center gap-3">
-                    {eventTypes.filter(et => et.is_tracked).map((eventTypeData, index) => {
-                      const eventType = eventTypeData.name;
-                      return (
-                        <div key={index} className="flex items-center gap-1">
-                          <div
-                            className="w-3 h-3 rounded border"
-                            style={{ 
-                              backgroundColor: getEventTypeColor(eventType),
-                              borderColor: 'rgba(0,0,0,0.2)'
-                            }}
-                          />
-                          <span className="text-xs font-medium">{eventTypeData.display_name || eventType}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="mt-4 text-xs" style={{ color: theme.colors.textSecondary }}>
+              <div className="mt-4 text-xs text-center" style={{ color: theme.colors.textSecondary }}>
                   <p>• Hover over event cards to see details and copy registration URLs</p>
                   <p>• Click gym buttons above to quickly jump to that gym's calendar section</p>
-                </div>
               </div>
 
               {/* Calendar Grid - FULL WIDTH */}
@@ -2441,9 +2800,10 @@ The system will add new events and update any changed events automatically.`;
                   </div>
 
                   {/* Calendar Body */}
-                  <div className="divide-y divide-gray-200">
+                  <div className="divide-y divide-gray-200 relative">
                     {allGymsFromList.map(gym => {
                       const gymEvents = filteredEvents.filter(e => (e.gym_name || e.gym_code) === gym);
+                      
                       
                       return (
                         <div
@@ -2468,22 +2828,6 @@ The system will add new events and update any changed events automatically.`;
                             const dateEvents = gymEvents.filter(event => {
                               if (!event.date) return false;
                               const eventDate = parseYmdLocal(event.date);
-                              // Debug logging
-                              if (gym === 'Capital Gymnastics Cedar Park' && event.type === 'KIDS NIGHT OUT') {
-                                console.log(`Event: ${event.title}`, {
-                                  storedDate: event.date,
-                                  parsedDate: eventDate,
-                                  targetDate: date,
-                                  targetMonth: currentMonth,
-                                  targetYear: currentYear,
-                                  eventMonth: eventDate.getMonth(),
-                                  eventDate: eventDate.getDate(),
-                                  matches: eventDate.getFullYear() === currentYear && 
-                                          eventDate.getMonth() === currentMonth && 
-                                          eventDate.getDate() === date
-                                });
-                              }
-                              // Check if event is in current month/year and on the specific date
                               return eventDate.getFullYear() === currentYear && 
                                      eventDate.getMonth() === currentMonth && 
                                      eventDate.getDate() === date;
@@ -2501,6 +2845,8 @@ The system will add new events and update any changed events automatically.`;
                                      style={{ color: theme.colors.textPrimary, fontSize: '10px', zIndex: 10 }}>
                                   {date}
                                 </div>
+                                
+                                
                                 <div className="space-y-1 pt-1">
                                   {dateEvents.length > 0 ? (
                                     dateEvents.map(event => (
@@ -2691,4 +3037,4 @@ The system will add new events and update any changed events automatically.`;
   );
 };
 
-export default EventsDashboard;
+export default EventsDashboard; 
