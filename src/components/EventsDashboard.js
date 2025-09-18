@@ -2871,8 +2871,8 @@ The system will add new events and update any changed events automatically.`;
                                         className="rounded border"
                                         style={{
                                           gridColumn: `${bar.startCol} / ${bar.endCol}`,
-                                          height: '10px',
-                                          marginTop: `${idx * 16}px`,
+                                          height: '6px',
+                                          marginTop: `${4 + idx * 10}px`,
                                           backgroundColor: bar.color,
                                           borderColor: 'rgba(0,0,0,0.1)',
                                           opacity: 0.9
