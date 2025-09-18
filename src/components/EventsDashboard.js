@@ -2050,13 +2050,13 @@ The system will add new events and update any changed events automatically.`;
           </div>
 
           {/* 🚀 BULK ACTION BUTTONS - Open All Gyms for Each Event Type */}
-          <div className="bg-white rounded shadow p-3 mb-3 mx-2" style={{ borderColor: '#cec4c1', borderWidth: '1px' }}>
+          <div className="bg-white rounded shadow p-2 mb-2 mx-2" style={{ borderColor: '#cec4c1', borderWidth: '1px' }}>
             <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded p-2 mb-3 border border-blue-200">
               <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
                 🚀 Bulk Actions - Open All Gyms
                 <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">One-Click Access</span>
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-1">
                 <button
                   onClick={() => {
                     const clinicUrls = getAllUrlsForEventType('CLINIC');
@@ -2066,11 +2066,11 @@ The system will add new events and update any changed events automatically.`;
                       `✨ Successfully opened all ${clinicUrls.length} clinic pages!`
                     );
                   }}
-                  className="flex flex-col items-center justify-center gap-1 px-3 py-2 bg-white rounded border border-purple-200 hover:border-purple-400 hover:bg-purple-50 transition-all duration-200 group text-center"
+                  className="flex flex-col items-center justify-center gap-1 px-2 py-1 bg-white rounded border border-purple-200 hover:border-purple-400 hover:bg-purple-50 transition-all duration-200 group text-center"
                 >
-                  <span className="text-xl group-hover:scale-110 transition-transform">⭐</span>
+                  <span className="text-lg group-hover:scale-110 transition-transform">⭐</span>
                   <div>
-                    <div className="font-semibold text-purple-800">All Clinics</div>
+                    <div className="font-semibold text-sm text-purple-800">All Clinics</div>
                     <div className="text-xs text-purple-600">Open all skill clinic pages</div>
                   </div>
                 </button>
@@ -2084,11 +2084,11 @@ The system will add new events and update any changed events automatically.`;
                       `✨ Successfully opened all ${knoUrls.length} Kids Night Out pages!`
                     );
                   }}
-                  className="flex flex-col items-center justify-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-pink-200 hover:border-pink-400 hover:bg-pink-50 transition-all duration-200 group text-center"
+                  className="flex flex-col items-center justify-center gap-1 px-2 py-1 bg-white rounded border border-pink-200 hover:border-pink-400 hover:bg-pink-50 transition-all duration-200 group text-center"
                 >
-                  <span className="text-xl group-hover:scale-110 transition-transform">🌙</span>
+                  <span className="text-lg group-hover:scale-110 transition-transform">🌙</span>
                   <div>
-                    <div className="font-semibold text-pink-800">All Kids Night Out</div>
+                    <div className="font-semibold text-sm text-pink-800">All Kids Night Out</div>
                     <div className="text-xs text-pink-600">Open all KNO pages</div>
                   </div>
                 </button>
@@ -2102,11 +2102,11 @@ The system will add new events and update any changed events automatically.`;
                       `✨ Successfully opened all ${openGymUrls.length} open gym pages!`
                     );
                   }}
-                  className="flex flex-col items-center justify-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-green-200 hover:border-green-400 hover:bg-green-50 transition-all duration-200 group text-center"
+                  className="flex flex-col items-center justify-center gap-1 px-2 py-1 bg-white rounded border border-green-200 hover:border-green-400 hover:bg-green-50 transition-all duration-200 group text-center"
                 >
-                  <span className="text-xl group-hover:scale-110 transition-transform">🎯</span>
+                  <span className="text-lg group-hover:scale-110 transition-transform">🎯</span>
                   <div>
-                    <div className="font-semibold text-green-800">All Open Gym</div>
+                    <div className="font-semibold text-sm text-green-800">All Open Gym</div>
                     <div className="text-xs text-green-600">Open all open gym pages</div>
                   </div>
                 </button>
@@ -2120,16 +2120,16 @@ The system will add new events and update any changed events automatically.`;
                       `✨ Successfully opened all ${bookingUrls.length} gym booking pages!`
                     );
                   }}
-                  className="flex flex-col items-center justify-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50 transition-all duration-200 group text-center"
+                  className="flex flex-col items-center justify-center gap-1 px-2 py-1 bg-white rounded border border-orange-200 hover:border-orange-400 hover:bg-orange-50 transition-all duration-200 group text-center"
                 >
-                  <span className="text-xl group-hover:scale-110 transition-transform">🌐</span>
+                  <span className="text-lg group-hover:scale-110 transition-transform">🌐</span>
                   <div>
-                    <div className="font-semibold text-orange-800">All Booking</div>
+                    <div className="font-semibold text-sm text-orange-800">All Booking</div>
                     <div className="text-xs text-orange-600">Open all gym booking pages</div>
                   </div>
                 </button>
 
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1.5">
                   <button
                     onClick={() => {
                       const campUrls = getAllUrlsForEventType('camps');
@@ -2139,11 +2139,11 @@ The system will add new events and update any changed events automatically.`;
                         `✨ Successfully opened all ${campUrls.length} full day camp pages!`
                       );
                     }}
-                    className="flex flex-col items-center justify-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-teal-200 hover:border-teal-400 hover:bg-teal-50 transition-all duration-200 group text-center"
+                    className="flex flex-col items-center justify-center gap-1 px-2 py-1 bg-white rounded border border-teal-200 hover:border-teal-400 hover:bg-teal-50 transition-all duration-200 group text-center"
                   >
-                    <span className="text-xl group-hover:scale-110 transition-transform">🏕️</span>
+                    <span className="text-lg group-hover:scale-110 transition-transform">🏕️</span>
                     <div>
-                      <div className="font-semibold text-teal-800">All Camps</div>
+                      <div className="font-semibold text-sm text-teal-800">All Camps</div>
                       <div className="text-xs text-teal-600">Full day camps</div>
                     </div>
                   </button>
@@ -2157,11 +2157,11 @@ The system will add new events and update any changed events automatically.`;
                         `✨ Successfully opened all ${halfDayCampUrls.length} half day camp pages!`
                       );
                     }}
-                    className="flex flex-col items-center justify-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-amber-200 hover:border-amber-400 hover:bg-amber-50 transition-all duration-200 group text-center"
+                    className="flex flex-col items-center justify-center gap-1 px-2 py-1 bg-white rounded border border-amber-200 hover:border-amber-400 hover:bg-amber-50 transition-all duration-200 group text-center"
                   >
-                    <span className="text-xl group-hover:scale-110 transition-transform">🕐</span>
+                    <span className="text-lg group-hover:scale-110 transition-transform">🕐</span>
                     <div>
-                      <div className="font-semibold text-amber-800">Half Day Camps</div>
+                      <div className="font-semibold text-sm text-amber-800">Half Day Camps</div>
                       <div className="text-xs text-amber-600">Half day options</div>
                     </div>
                   </button>
@@ -2809,7 +2809,7 @@ The system will add new events and update any changed events automatically.`;
                         <div
                           key={gym}
                           ref={el => gymRefs.current[gym] = el}
-                          className="grid hover:bg-gray-50 transition-colors"
+                          className="relative grid hover:bg-gray-50 transition-colors"
                           style={{ gridTemplateColumns: `150px repeat(${displayDates.length}, 1fr)` }}
                         >
                           {/* Gym Name Column */}
@@ -2823,6 +2823,70 @@ The system will add new events and update any changed events automatically.`;
                             </div>
                           </div>
                           
+                          {/* Multi-day Event Bars Overlay (only when viewing CAMPs) */}
+                          {(() => {
+                            if (selectedEventType !== 'CAMP') return null;
+                            try {
+                              const bars = [];
+                              const minDay = displayDates[0];
+                              const maxDay = displayDates[displayDates.length - 1];
+                              (gymEvents || []).forEach(ev => {
+                                const evType = (ev.type || ev.event_type || '').toUpperCase();
+                                if (evType !== 'CAMP') return;
+                                const startStr = ev.start_date || ev.date;
+                                const endStr = ev.end_date || ev.date;
+                                if (!startStr || !endStr) return;
+                                const startDt = parseYmdLocal(startStr);
+                                const endDt = parseYmdLocal(endStr);
+                                if (!(startDt instanceof Date) || !(endDt instanceof Date)) return;
+                                if (isNaN(startDt.getTime()) || isNaN(endDt.getTime())) return;
+                                // Only consider spans longer than a single day
+                                if (endDt < startDt) return;
+                                const sameDay = startDt.getFullYear() === endDt.getFullYear() && startDt.getMonth() === endDt.getMonth() && startDt.getDate() === endDt.getDate();
+                                if (sameDay) return;
+                                // Only render portion visible in current view/month
+                                const startDayNum = (startDt.getFullYear() === currentYear && startDt.getMonth() === currentMonth) ? startDt.getDate() : 1;
+                                const endDayNum = (endDt.getFullYear() === currentYear && endDt.getMonth() === currentMonth) ? endDt.getDate() : 31;
+                                // Find indices within displayDates
+                                const startIdx = displayDates.findIndex(d => d >= Math.max(minDay, startDayNum));
+                                let endIdx = -1;
+                                for (let i = displayDates.length - 1; i >= 0; i--) {
+                                  if (displayDates[i] <= Math.min(maxDay, endDayNum)) { endIdx = i; break; }
+                                }
+                                if (startIdx === -1 || endIdx === -1 || startIdx > endIdx) return;
+                                bars.push({
+                                  key: `${ev.id || ev.event_url || ev.title || Math.random()}-${startIdx}-${endIdx}`,
+                                  startCol: startIdx + 1, // grid is 1-based
+                                  endCol: endIdx + 2,     // end is exclusive
+                                  color: getEventTypeColor(ev.type || ev.event_type)
+                                });
+                              });
+                              if (bars.length === 0) return null;
+                              return (
+                                <div className="pointer-events-none absolute inset-y-0 left-0 right-0" style={{ display: 'grid', gridTemplateColumns: `150px repeat(${displayDates.length}, 1fr)`, zIndex: 0 }}>
+                                  <div style={{ gridColumn: '2 / -1', position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${displayDates.length}, 1fr)` }}>
+                                    {bars.map((bar, idx) => (
+                                      <div
+                                        key={bar.key}
+                                        className="rounded border"
+                                        style={{
+                                          gridColumn: `${bar.startCol} / ${bar.endCol}`,
+                                          height: '6px',
+                                          marginTop: `${4 + idx * 10}px`,
+                                          backgroundColor: bar.color,
+                                          borderColor: 'rgba(0,0,0,0.1)',
+                                          opacity: 0.9
+                                        }}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            } catch (_) {
+                              return null;
+                            }
+                          })()}
+
                           {/* Date Columns */}
                           {displayDates.map(date => {
                             const dateEvents = gymEvents.filter(event => {
@@ -2849,51 +2913,55 @@ The system will add new events and update any changed events automatically.`;
                                 
                                 <div className="space-y-1 pt-1">
                                   {dateEvents.length > 0 ? (
-                                    dateEvents.map(event => (
-                                      <div
-                                        key={event.id}
-                                        className="relative group cursor-pointer"
-                                        onMouseEnter={(e) => {
-                                          if (hidePopoverTimeoutRef.current) clearTimeout(hidePopoverTimeoutRef.current);
-                                          setHoveredEvent({ event, position: { x: e.clientX, y: e.clientY } });
-                                        }}
-                                        onMouseLeave={() => {
-                                          if (hidePopoverTimeoutRef.current) clearTimeout(hidePopoverTimeoutRef.current);
-                                          hidePopoverTimeoutRef.current = setTimeout(() => setHoveredEvent(null), 200);
-                                        }}
-                                      >
-                                                                              <div
-                                        className="text-xs p-2 rounded text-gray-700 text-center font-medium hover:scale-105 transition-transform duration-150 border"
-                                        style={{ 
-                                          backgroundColor: getEventTypeColor(event.type || event.event_type),
-                                          borderColor: 'rgba(0,0,0,0.1)'
-                                        }}
-                                      >
-                                        <div className="font-semibold text-sm leading-tight">
-                                          {(() => {
-                                            const eventTypeName = event.type || event.event_type;
-                                            const eventTypeData = eventTypes.find(et => et.name === eventTypeName);
-                                            return eventTypeData?.display_name || eventTypeName || 'Event';
-                                          })()}
-                                        </div>
-                                        <div className="text-xs text-gray-600 mt-0.5 leading-tight">
-                                          {formatTime(event.time || event.event_time) || ''}
-                                        </div>
-                                      </div>
-                                        
-                                        {/* Edit Button - Click to open edit modal */}
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleEditEvent(event);
+                                    dateEvents.map(event => {
+                                      const isCamp = ((event.type || event.event_type || '').toUpperCase() === 'CAMP');
+                                      // In CAMP view, hide per-day camp cards (bars show instead)
+                                      if (selectedEventType === 'CAMP' && isCamp) return null;
+                                      return (
+                                        <div
+                                          key={event.id}
+                                          className="relative group cursor-pointer"
+                                          onMouseEnter={(e) => {
+                                            if (hidePopoverTimeoutRef.current) clearTimeout(hidePopoverTimeoutRef.current);
+                                            setHoveredEvent({ event, position: { x: e.clientX, y: e.clientY } });
                                           }}
-                                          className="absolute top-0 right-0 w-4 h-4 bg-blue-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center hover:bg-blue-600 text-xs"
-                                          title="Edit event"
+                                          onMouseLeave={() => {
+                                            if (hidePopoverTimeoutRef.current) clearTimeout(hidePopoverTimeoutRef.current);
+                                            hidePopoverTimeoutRef.current = setTimeout(() => setHoveredEvent(null), 200);
+                                          }}
                                         >
-                                          ✎
-                                        </button>
-                                      </div>
-                                    ))
+                                          <div
+                                            className="text-xs p-2 rounded text-gray-700 text-center font-medium hover:scale-105 transition-transform duration-150 border"
+                                            style={{ 
+                                              backgroundColor: getEventTypeColor(event.type || event.event_type),
+                                              borderColor: 'rgba(0,0,0,0.1)'
+                                            }}
+                                          >
+                                            <div className="font-semibold text-sm leading-tight">
+                                              {(() => {
+                                                const eventTypeName = event.type || event.event_type;
+                                                const eventTypeData = eventTypes.find(et => et.name === eventTypeName);
+                                                return eventTypeData?.display_name || eventTypeName || 'Event';
+                                              })()}
+                                            </div>
+                                            <div className="text-xs text-gray-600 mt-0.5 leading-tight">
+                                              {formatTime(event.time || event.event_time) || ''}
+                                            </div>
+                                          </div>
+                                          {/* Edit Button - Click to open edit modal */}
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleEditEvent(event);
+                                            }}
+                                            className="absolute top-0 right-0 w-4 h-4 bg-blue-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center hover:bg-blue-600 text-xs"
+                                            title="Edit event"
+                                          >
+                                            ✎
+                                          </button>
+                                        </div>
+                                      );
+                                    })
                                   ) : (
                                     // Show placeholder for debugging
                                     <div className="text-xs text-gray-400 p-1">

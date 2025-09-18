@@ -235,12 +235,8 @@ Homeschool Free Play| September 10 |10:00-11:30am |$10
 
 ### **Explored Solutions:**
 
-#### **1. Firecrawl Integration:**
-- **✅ Tested successfully** with Houston Gymnastics Academy
-- **✅ Extracts event data** from customer portal pages  
-- **❌ Registration URLs** not available (requires individual page visits)
-- **Cost**: ~$1.50 per complete gym collection
-- **Accuracy**: ~80-90% for visible data
+#### **1. Automation Exploration (Archived):**
+- Previously evaluated external scraping to collect event data. This path is archived and not used.
 
 #### **2. iClass Pro Admin APIs:**
 - **✅ Discovered internal APIs** in admin portal

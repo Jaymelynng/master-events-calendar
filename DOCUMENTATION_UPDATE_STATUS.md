@@ -20,7 +20,6 @@
 
 #### **✅ Advanced Capabilities:**
 - Bulk import workflow integration
-- Automation exploration results (Firecrawl, Admin APIs)
 - Error prevention and validation systems
 - Production deployment readiness
 
