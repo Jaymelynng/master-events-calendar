@@ -2050,13 +2050,13 @@ The system will add new events and update any changed events automatically.`;
           </div>
 
           {/* 🚀 BULK ACTION BUTTONS - Open All Gyms for Each Event Type */}
-          <div className="bg-white rounded shadow p-3 mb-3 mx-2" style={{ borderColor: '#cec4c1', borderWidth: '1px' }}>
+          <div className="bg-white rounded shadow p-2 mb-2 mx-2" style={{ borderColor: '#cec4c1', borderWidth: '1px' }}>
             <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded p-2 mb-3 border border-blue-200">
               <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
                 🚀 Bulk Actions - Open All Gyms
                 <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">One-Click Access</span>
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-1">
                 <button
                   onClick={() => {
                     const clinicUrls = getAllUrlsForEventType('CLINIC');
@@ -2066,11 +2066,11 @@ The system will add new events and update any changed events automatically.`;
                       `✨ Successfully opened all ${clinicUrls.length} clinic pages!`
                     );
                   }}
-                  className="flex flex-col items-center justify-center gap-1 px-3 py-2 bg-white rounded border border-purple-200 hover:border-purple-400 hover:bg-purple-50 transition-all duration-200 group text-center"
+                  className="flex flex-col items-center justify-center gap-1 px-2 py-1 bg-white rounded border border-purple-200 hover:border-purple-400 hover:bg-purple-50 transition-all duration-200 group text-center"
                 >
-                  <span className="text-xl group-hover:scale-110 transition-transform">⭐</span>
+                  <span className="text-lg group-hover:scale-110 transition-transform">⭐</span>
                   <div>
-                    <div className="font-semibold text-purple-800">All Clinics</div>
+                    <div className="font-semibold text-sm text-purple-800">All Clinics</div>
                     <div className="text-xs text-purple-600">Open all skill clinic pages</div>
                   </div>
                 </button>
@@ -2084,11 +2084,11 @@ The system will add new events and update any changed events automatically.`;
                       `✨ Successfully opened all ${knoUrls.length} Kids Night Out pages!`
                     );
                   }}
-                  className="flex flex-col items-center justify-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-pink-200 hover:border-pink-400 hover:bg-pink-50 transition-all duration-200 group text-center"
+                  className="flex flex-col items-center justify-center gap-1 px-2 py-1 bg-white rounded border border-pink-200 hover:border-pink-400 hover:bg-pink-50 transition-all duration-200 group text-center"
                 >
-                  <span className="text-xl group-hover:scale-110 transition-transform">🌙</span>
+                  <span className="text-lg group-hover:scale-110 transition-transform">🌙</span>
                   <div>
-                    <div className="font-semibold text-pink-800">All Kids Night Out</div>
+                    <div className="font-semibold text-sm text-pink-800">All Kids Night Out</div>
                     <div className="text-xs text-pink-600">Open all KNO pages</div>
                   </div>
                 </button>
@@ -2102,11 +2102,11 @@ The system will add new events and update any changed events automatically.`;
                       `✨ Successfully opened all ${openGymUrls.length} open gym pages!`
                     );
                   }}
-                  className="flex flex-col items-center justify-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-green-200 hover:border-green-400 hover:bg-green-50 transition-all duration-200 group text-center"
+                  className="flex flex-col items-center justify-center gap-1 px-2 py-1 bg-white rounded border border-green-200 hover:border-green-400 hover:bg-green-50 transition-all duration-200 group text-center"
                 >
-                  <span className="text-xl group-hover:scale-110 transition-transform">🎯</span>
+                  <span className="text-lg group-hover:scale-110 transition-transform">🎯</span>
                   <div>
-                    <div className="font-semibold text-green-800">All Open Gym</div>
+                    <div className="font-semibold text-sm text-green-800">All Open Gym</div>
                     <div className="text-xs text-green-600">Open all open gym pages</div>
                   </div>
                 </button>
@@ -2120,16 +2120,16 @@ The system will add new events and update any changed events automatically.`;
                       `✨ Successfully opened all ${bookingUrls.length} gym booking pages!`
                     );
                   }}
-                  className="flex flex-col items-center justify-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50 transition-all duration-200 group text-center"
+                  className="flex flex-col items-center justify-center gap-1 px-2 py-1 bg-white rounded border border-orange-200 hover:border-orange-400 hover:bg-orange-50 transition-all duration-200 group text-center"
                 >
-                  <span className="text-xl group-hover:scale-110 transition-transform">🌐</span>
+                  <span className="text-lg group-hover:scale-110 transition-transform">🌐</span>
                   <div>
-                    <div className="font-semibold text-orange-800">All Booking</div>
+                    <div className="font-semibold text-sm text-orange-800">All Booking</div>
                     <div className="text-xs text-orange-600">Open all gym booking pages</div>
                   </div>
                 </button>
 
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1.5">
                   <button
                     onClick={() => {
                       const campUrls = getAllUrlsForEventType('camps');
@@ -2139,11 +2139,11 @@ The system will add new events and update any changed events automatically.`;
                         `✨ Successfully opened all ${campUrls.length} full day camp pages!`
                       );
                     }}
-                    className="flex flex-col items-center justify-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-teal-200 hover:border-teal-400 hover:bg-teal-50 transition-all duration-200 group text-center"
+                    className="flex flex-col items-center justify-center gap-1 px-2 py-1 bg-white rounded border border-teal-200 hover:border-teal-400 hover:bg-teal-50 transition-all duration-200 group text-center"
                   >
-                    <span className="text-xl group-hover:scale-110 transition-transform">🏕️</span>
+                    <span className="text-lg group-hover:scale-110 transition-transform">🏕️</span>
                     <div>
-                      <div className="font-semibold text-teal-800">All Camps</div>
+                      <div className="font-semibold text-sm text-teal-800">All Camps</div>
                       <div className="text-xs text-teal-600">Full day camps</div>
                     </div>
                   </button>
@@ -2157,11 +2157,11 @@ The system will add new events and update any changed events automatically.`;
                         `✨ Successfully opened all ${halfDayCampUrls.length} half day camp pages!`
                       );
                     }}
-                    className="flex flex-col items-center justify-center gap-2 px-4 py-3 bg-white rounded-lg border-2 border-amber-200 hover:border-amber-400 hover:bg-amber-50 transition-all duration-200 group text-center"
+                    className="flex flex-col items-center justify-center gap-1 px-2 py-1 bg-white rounded border border-amber-200 hover:border-amber-400 hover:bg-amber-50 transition-all duration-200 group text-center"
                   >
-                    <span className="text-xl group-hover:scale-110 transition-transform">🕐</span>
+                    <span className="text-lg group-hover:scale-110 transition-transform">🕐</span>
                     <div>
-                      <div className="font-semibold text-amber-800">Half Day Camps</div>
+                      <div className="font-semibold text-sm text-amber-800">Half Day Camps</div>
                       <div className="text-xs text-amber-600">Half day options</div>
                     </div>
                   </button>
