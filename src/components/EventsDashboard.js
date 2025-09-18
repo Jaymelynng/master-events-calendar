@@ -1,13 +1,11 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
-  Calendar, Clock, DollarSign, MapPin, Filter, Search, Grid, List, Plus, 
+  Calendar, Clock, DollarSign, MapPin, Search, Grid, List, Plus, 
   ChevronUp, ChevronLeft, ChevronRight, AlertCircle, Loader, Copy, CheckCircle
 } from 'lucide-react';
 
 // Import real API functions
-import { gymsApi, eventsApi, eventTypesApi, monthlyRequirementsApi } from '../lib/api';
-import { gymLinksApi } from '../lib/gymLinksApi';
-import { collectAllGymsJob } from '../lib/collectAllGyms';
+import { eventsApi, monthlyRequirementsApi } from '../lib/api';
 import { cachedApi } from '../lib/cache';
 import { supabase } from '../lib/supabase';
 
@@ -213,7 +211,6 @@ const EventsDashboard = () => {
   const [editingEvent, setEditingEvent] = useState(null);
   const [bulkImportData, setBulkImportData] = useState('');
   const [rawEventListings, setRawEventListings] = useState('');
-  const [bulkImportEventType, setBulkImportEventType] = useState('AUTO_DETECT');
   const [validationResults, setValidationResults] = useState(null);
   // Admin timing metrics for benchmarking the workflow
   const [importTiming, setImportTiming] = useState({ convertMs: null, importMs: null, totalMs: null });
@@ -440,7 +437,13 @@ const EventsDashboard = () => {
         event.gym_code === selectedGym || 
         event.gym_id === selectedGym ||
         event.gym_name === selectedGym;
-      const matchesType = selectedEventType === 'all' || event.type === selectedEventType || (!event.type && selectedEventType === 'all');
+      const matchesType = selectedEventType === 'all' || 
+        event.type === selectedEventType || 
+        (!event.type && selectedEventType === 'all') ||
+        (selectedEventType === 'CAMP' && (
+          event.type?.toLowerCase().includes('camp') || 
+          event.title?.toLowerCase().includes('camp')
+        ));
       const matchesSearch = searchTerm === '' || 
         event.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         event.type?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -680,7 +683,7 @@ const EventsDashboard = () => {
         const gymLink = gymLinks.find(gl => gl.gym_name === gym.name);
         let portalSlug = '';
         if (gymLink && gymLink.url) {
-          const urlMatch = gymLink.url.match(/portal\.iclasspro\.com\/([^\/]+)/);
+          const urlMatch = gymLink.url.match(/portal\.iclasspro\.com\/([^/]+)/);
           if (urlMatch) {
             portalSlug = urlMatch[1];
           }
@@ -970,14 +973,11 @@ const EventsDashboard = () => {
       // 1) De-duplicate within the pasted batch by unique key
       const seenKeys = new Set();
       const batchUnique = [];
-      let skippedInBatch = 0;
       for (const event of newEvents) {
         const key = `${event.gym_id}-${event.date}-${event.time}-${event.type}`;
         if (!seenKeys.has(key)) {
           seenKeys.add(key);
           batchUnique.push(event);
-        } else {
-          skippedInBatch++;
         }
       }
 
@@ -2357,14 +2357,6 @@ The system will add new events and update any changed events automatically.`;
                               gl.link_type_id === 'camps_half'
                             )?.url;
                             
-                            // Count actual camp events
-                            const campEvents = events.filter(event => 
-                              (event.gym_id === gym.gym_code || event.gym_id === gym.id) &&
-                              (event.type?.toLowerCase().includes('camp') || 
-                               event.title?.toLowerCase().includes('camp'))
-                            );
-                            const campCount = campEvents.length;
-                            
                             if (hasFullDay && hasHalfDay) {
                               // Split clickable areas for gyms with both types
                               return (
@@ -2589,7 +2581,7 @@ The system will add new events and update any changed events automatically.`;
                 }`} 
                 style={{ backgroundColor: '#fde685' }}
               >
-                CAMP
+                🏕️ CAMP
               </button>
             </div>
 
@@ -2644,7 +2636,22 @@ The system will add new events and update any changed events automatically.`;
                               color: '#374151'
                             }}
                           >
-                            {event.type || event.event_type || 'No Type'}
+                            {(() => {
+                              const eventType = event.type || event.event_type || 'No Type';
+                              const isCampEvent = eventType?.toLowerCase().includes('camp') || 
+                                                event.title?.toLowerCase().includes('camp');
+                              
+                              if (isCampEvent) {
+                                return (
+                                  <>
+                                    <span className="mr-1">🏕️</span>
+                                    {eventType}
+                                  </>
+                                );
+                              }
+                              
+                              return eventType;
+                            })()}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900">
@@ -2869,11 +2876,26 @@ The system will add new events and update any changed events automatically.`;
                                           borderColor: 'rgba(0,0,0,0.1)'
                                         }}
                                       >
-                                        <div className="font-semibold text-sm leading-tight">
+                                        <div className="font-semibold text-sm leading-tight flex items-center justify-center gap-1">
                                           {(() => {
                                             const eventTypeName = event.type || event.event_type;
                                             const eventTypeData = eventTypes.find(et => et.name === eventTypeName);
-                                            return eventTypeData?.display_name || eventTypeName || 'Event';
+                                            const displayName = eventTypeData?.display_name || eventTypeName || 'Event';
+                                            
+                                            // Add special icons for camp events
+                                            const isCampEvent = eventTypeName?.toLowerCase().includes('camp') || 
+                                                              event.title?.toLowerCase().includes('camp');
+                                            
+                                            if (isCampEvent) {
+                                              return (
+                                                <>
+                                                  <span className="text-sm">🏕️</span>
+                                                  <span>{displayName}</span>
+                                                </>
+                                              );
+                                            }
+                                            
+                                            return displayName;
                                           })()}
                                         </div>
                                         <div className="text-xs text-gray-600 mt-0.5 leading-tight">
@@ -2939,13 +2961,44 @@ The system will add new events and update any changed events automatically.`;
                                backgroundColor: getEventTypeColor(hoveredEvent.event.type || hoveredEvent.event.event_type),
                                borderColor: 'rgba(0,0,0,0.1)'
                              }}>
-                         {hoveredEvent.event.type || hoveredEvent.event.event_type || 'EVENT'}
+                         {(() => {
+                           const eventType = hoveredEvent.event.type || hoveredEvent.event.event_type || 'EVENT';
+                           const isCampEvent = eventType?.toLowerCase().includes('camp') || 
+                                             hoveredEvent.event.title?.toLowerCase().includes('camp');
+                           
+                           if (isCampEvent) {
+                             return (
+                               <>
+                                 <span className="mr-1">🏕️</span>
+                                 {eventType}
+                               </>
+                             );
+                           }
+                           
+                           return eventType;
+                         })()}
                        </span>
                      </div>
                     
                     {/* Event Title */}
-                    <h4 className="font-semibold text-base mb-3 text-gray-800">
-                      {hoveredEvent.event.title || `${hoveredEvent.event.type || hoveredEvent.event.event_type} Event`}
+                    <h4 className="font-semibold text-base mb-3 text-gray-800 flex items-center gap-2">
+                      {(() => {
+                        const eventType = hoveredEvent.event.type || hoveredEvent.event.event_type;
+                        const title = hoveredEvent.event.title || `${eventType} Event`;
+                        const isCampEvent = eventType?.toLowerCase().includes('camp') || 
+                                          title?.toLowerCase().includes('camp');
+                        
+                        if (isCampEvent && !title.includes('🏕️')) {
+                          return (
+                            <>
+                              <span className="text-yellow-600">🏕️</span>
+                              <span>{title}</span>
+                            </>
+                          );
+                        }
+                        
+                        return title;
+                      })()}
                     </h4>
                     
                     {/* Event Details */}
