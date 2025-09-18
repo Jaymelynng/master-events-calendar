@@ -1,13 +1,11 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
-  Calendar, Clock, DollarSign, MapPin, Filter, Search, Grid, List, Plus, 
+  Calendar, Clock, DollarSign, MapPin, Search, Grid, List, Plus, 
   ChevronUp, ChevronLeft, ChevronRight, AlertCircle, Loader, Copy, CheckCircle
 } from 'lucide-react';
 
 // Import real API functions
-import { gymsApi, eventsApi, eventTypesApi, monthlyRequirementsApi } from '../lib/api';
-import { gymLinksApi } from '../lib/gymLinksApi';
-import { collectAllGymsJob } from '../lib/collectAllGyms';
+import { eventsApi, monthlyRequirementsApi } from '../lib/api';
 import { cachedApi } from '../lib/cache';
 import { supabase } from '../lib/supabase';
 
@@ -213,7 +211,6 @@ const EventsDashboard = () => {
   const [editingEvent, setEditingEvent] = useState(null);
   const [bulkImportData, setBulkImportData] = useState('');
   const [rawEventListings, setRawEventListings] = useState('');
-  const [bulkImportEventType, setBulkImportEventType] = useState('AUTO_DETECT');
   const [validationResults, setValidationResults] = useState(null);
   // Admin timing metrics for benchmarking the workflow
   const [importTiming, setImportTiming] = useState({ convertMs: null, importMs: null, totalMs: null });
@@ -680,7 +677,7 @@ const EventsDashboard = () => {
         const gymLink = gymLinks.find(gl => gl.gym_name === gym.name);
         let portalSlug = '';
         if (gymLink && gymLink.url) {
-          const urlMatch = gymLink.url.match(/portal\.iclasspro\.com\/([^\/]+)/);
+          const urlMatch = gymLink.url.match(/portal\.iclasspro\.com\/([^/]+)/);
           if (urlMatch) {
             portalSlug = urlMatch[1];
           }
@@ -970,14 +967,11 @@ const EventsDashboard = () => {
       // 1) De-duplicate within the pasted batch by unique key
       const seenKeys = new Set();
       const batchUnique = [];
-      let skippedInBatch = 0;
       for (const event of newEvents) {
         const key = `${event.gym_id}-${event.date}-${event.time}-${event.type}`;
         if (!seenKeys.has(key)) {
           seenKeys.add(key);
           batchUnique.push(event);
-        } else {
-          skippedInBatch++;
         }
       }
 
@@ -2356,14 +2350,6 @@ The system will add new events and update any changed events automatically.`;
                               (gl.gym_id === gym.gym_code || gl.gym_id === gym.id) && 
                               gl.link_type_id === 'camps_half'
                             )?.url;
-                            
-                            // Count actual camp events
-                            const campEvents = events.filter(event => 
-                              (event.gym_id === gym.gym_code || event.gym_id === gym.id) &&
-                              (event.type?.toLowerCase().includes('camp') || 
-                               event.title?.toLowerCase().includes('camp'))
-                            );
-                            const campCount = campEvents.length;
                             
                             if (hasFullDay && hasHalfDay) {
                               // Split clickable areas for gyms with both types
