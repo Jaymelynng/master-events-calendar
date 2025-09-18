@@ -35,6 +35,7 @@ lerna-debug.log*
 # Cache
 .cache/
 *.cache
+node_modules/.cache/
 
 # Temporary files
 *.tmp

@@ -437,7 +437,13 @@ const EventsDashboard = () => {
         event.gym_code === selectedGym || 
         event.gym_id === selectedGym ||
         event.gym_name === selectedGym;
-      const matchesType = selectedEventType === 'all' || event.type === selectedEventType || (!event.type && selectedEventType === 'all');
+      const matchesType = selectedEventType === 'all' || 
+        event.type === selectedEventType || 
+        (!event.type && selectedEventType === 'all') ||
+        (selectedEventType === 'CAMP' && (
+          event.type?.toLowerCase().includes('camp') || 
+          event.title?.toLowerCase().includes('camp')
+        ));
       const matchesSearch = searchTerm === '' || 
         event.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         event.type?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -2575,7 +2581,7 @@ The system will add new events and update any changed events automatically.`;
                 }`} 
                 style={{ backgroundColor: '#fde685' }}
               >
-                CAMP
+                🏕️ CAMP
               </button>
             </div>
 
@@ -2630,7 +2636,22 @@ The system will add new events and update any changed events automatically.`;
                               color: '#374151'
                             }}
                           >
-                            {event.type || event.event_type || 'No Type'}
+                            {(() => {
+                              const eventType = event.type || event.event_type || 'No Type';
+                              const isCampEvent = eventType?.toLowerCase().includes('camp') || 
+                                                event.title?.toLowerCase().includes('camp');
+                              
+                              if (isCampEvent) {
+                                return (
+                                  <>
+                                    <span className="mr-1">🏕️</span>
+                                    {eventType}
+                                  </>
+                                );
+                              }
+                              
+                              return eventType;
+                            })()}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900">
@@ -2855,11 +2876,26 @@ The system will add new events and update any changed events automatically.`;
                                           borderColor: 'rgba(0,0,0,0.1)'
                                         }}
                                       >
-                                        <div className="font-semibold text-sm leading-tight">
+                                        <div className="font-semibold text-sm leading-tight flex items-center justify-center gap-1">
                                           {(() => {
                                             const eventTypeName = event.type || event.event_type;
                                             const eventTypeData = eventTypes.find(et => et.name === eventTypeName);
-                                            return eventTypeData?.display_name || eventTypeName || 'Event';
+                                            const displayName = eventTypeData?.display_name || eventTypeName || 'Event';
+                                            
+                                            // Add special icons for camp events
+                                            const isCampEvent = eventTypeName?.toLowerCase().includes('camp') || 
+                                                              event.title?.toLowerCase().includes('camp');
+                                            
+                                            if (isCampEvent) {
+                                              return (
+                                                <>
+                                                  <span className="text-sm">🏕️</span>
+                                                  <span>{displayName}</span>
+                                                </>
+                                              );
+                                            }
+                                            
+                                            return displayName;
                                           })()}
                                         </div>
                                         <div className="text-xs text-gray-600 mt-0.5 leading-tight">
@@ -2925,13 +2961,44 @@ The system will add new events and update any changed events automatically.`;
                                backgroundColor: getEventTypeColor(hoveredEvent.event.type || hoveredEvent.event.event_type),
                                borderColor: 'rgba(0,0,0,0.1)'
                              }}>
-                         {hoveredEvent.event.type || hoveredEvent.event.event_type || 'EVENT'}
+                         {(() => {
+                           const eventType = hoveredEvent.event.type || hoveredEvent.event.event_type || 'EVENT';
+                           const isCampEvent = eventType?.toLowerCase().includes('camp') || 
+                                             hoveredEvent.event.title?.toLowerCase().includes('camp');
+                           
+                           if (isCampEvent) {
+                             return (
+                               <>
+                                 <span className="mr-1">🏕️</span>
+                                 {eventType}
+                               </>
+                             );
+                           }
+                           
+                           return eventType;
+                         })()}
                        </span>
                      </div>
                     
                     {/* Event Title */}
-                    <h4 className="font-semibold text-base mb-3 text-gray-800">
-                      {hoveredEvent.event.title || `${hoveredEvent.event.type || hoveredEvent.event.event_type} Event`}
+                    <h4 className="font-semibold text-base mb-3 text-gray-800 flex items-center gap-2">
+                      {(() => {
+                        const eventType = hoveredEvent.event.type || hoveredEvent.event.event_type;
+                        const title = hoveredEvent.event.title || `${eventType} Event`;
+                        const isCampEvent = eventType?.toLowerCase().includes('camp') || 
+                                          title?.toLowerCase().includes('camp');
+                        
+                        if (isCampEvent && !title.includes('🏕️')) {
+                          return (
+                            <>
+                              <span className="text-yellow-600">🏕️</span>
+                              <span>{title}</span>
+                            </>
+                          );
+                        }
+                        
+                        return title;
+                      })()}
                     </h4>
                     
                     {/* Event Details */}
