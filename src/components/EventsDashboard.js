@@ -196,6 +196,7 @@ const EventsDashboard = () => {
   // State management
   const [selectedGym, setSelectedGym] = useState('all');
   const [selectedEventType, setSelectedEventType] = useState('all');
+  const [calendarMode, setCalendarMode] = useState('monthly'); // 'monthly' or 'camps'
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('calendar');
   // Dynamic month - starts with current month
@@ -445,9 +446,14 @@ const EventsDashboard = () => {
         event.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         event.type?.toLowerCase().includes(searchTerm.toLowerCase());
       
-      return matchesGym && matchesType && matchesSearch;
+      // Filter by calendar mode
+      const matchesMode = calendarMode === 'monthly' 
+        ? event.type !== 'CAMP'  // Monthly: show everything except camps
+        : event.type === 'CAMP'; // Camps: show only camps
+      
+      return matchesGym && matchesType && matchesSearch && matchesMode;
     });
-  }, [events, selectedGym, selectedEventType, searchTerm]);
+  }, [events, selectedGym, selectedEventType, searchTerm, calendarMode]);
 
   const uniqueGymsWithEvents = useMemo(() => {
     const gymCodes = [...new Set(filteredEvents.map(event => event.gym_code))];
@@ -1093,19 +1099,38 @@ The system will add new events and update any changed events automatically.`;
           processedDate = new Date().toISOString().split('T')[0]; // Fallback to today
         }
 
-        // Parse date range for camps
+        // Parse date range for camps from title
         let startDate = processedDate;
         let endDate = processedDate;
         
-        // Extract date range from camp titles
         if (event.type === 'CAMP' && event.title) {
-          const dateRangeMatch = event.title.match(/(\w+\s+\d{1,2}(?:st|nd|rd|th)?(?:\s*-\s*\w+\s+\d{1,2}(?:st|nd|rd|th)?)?(?:\s*,\s*\d{4})?)/i);
-          if (dateRangeMatch) {
-            const dateStr = dateRangeMatch[1];
-            // Handle ranges like "Oct 16-17", "Nov 3-4", "Dec 22-Jan 5" etc
-            if (dateStr.includes('-')) {
-              // This is a date range - we'll keep using the single date for now
-              // but mark this as needing consolidation
+          // Look for date patterns like "11/24 - 11/26", "10/10 & 10/13", "12/22, 12/23, 12/26"
+          const title = event.title;
+          
+          // Pattern 1: "11/24 - 11/26" (range with dash)
+          const rangeMatch = title.match(/(\d{1,2})\/(\d{1,2})\s*-\s*(\d{1,2})\/(\d{1,2})/);
+          if (rangeMatch) {
+            const [, startMonth, startDay, endMonth, endDay] = rangeMatch;
+            const year = new Date(processedDate).getFullYear();
+            startDate = `${year}-${startMonth.padStart(2, '0')}-${startDay.padStart(2, '0')}`;
+            endDate = `${year}-${endMonth.padStart(2, '0')}-${endDay.padStart(2, '0')}`;
+          } else {
+            // Pattern 2: "10/10 & 10/13" (multiple specific dates)
+            const multiDateMatch = title.match(/(\d{1,2})\/(\d{1,2})\s*&\s*(\d{1,2})\/(\d{1,2})/);
+            if (multiDateMatch) {
+              const [, startMonth, startDay, endMonth, endDay] = multiDateMatch;
+              const year = new Date(processedDate).getFullYear();
+              startDate = `${year}-${startMonth.padStart(2, '0')}-${startDay.padStart(2, '0')}`;
+              endDate = `${year}-${endMonth.padStart(2, '0')}-${endDay.padStart(2, '0')}`;
+            } else {
+              // Pattern 3: "12/22, 12/23, 12/26" (comma separated dates)
+              const commaMatch = title.match(/(\d{1,2})\/(\d{1,2})(?:,\s*\d{1,2}\/\d{1,2})*,\s*(\d{1,2})\/(\d{1,2})/);
+              if (commaMatch) {
+                const [, startMonth, startDay, endMonth, endDay] = commaMatch;
+                const year = new Date(processedDate).getFullYear();
+                startDate = `${year}-${startMonth.padStart(2, '0')}-${startDay.padStart(2, '0')}`;
+                endDate = `${year}-${endMonth.padStart(2, '0')}-${endDay.padStart(2, '0')}`;
+              }
             }
           }
         }
@@ -2474,8 +2499,8 @@ The system will add new events and update any changed events automatically.`;
               </button>
             </div>
 
-            {/* ADD EVENT - Centered Under Header */}
-            <div className="flex justify-center mb-2">
+            {/* ADD EVENT - Moved Under Month Navigation */}
+            <div className="flex justify-center mb-3">
               <button
                 onClick={() => setShowAddEventModal(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105 shadow-md font-medium text-sm"
@@ -2537,9 +2562,30 @@ The system will add new events and update any changed events automatically.`;
                 {viewMode === 'calendar' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
                 {viewMode === 'calendar' ? 'Table View' : 'Calendar View'}
               </button>
-            </div>
 
-            {/* Event Types - All Filter Buttons */}
+              {/* View Mode Toggle - Monthly vs Camps */}
+              <div className="flex gap-1 border rounded-lg p-1 bg-gray-50">
+              <button
+                  onClick={() => setCalendarMode('monthly')}
+                  className={`flex items-center gap-1 px-3 py-1 rounded-md transition-all text-sm font-medium ${
+                    calendarMode === 'monthly' ? 'bg-white shadow text-gray-800' : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  📅 Monthly Events
+              </button>
+              <button
+                  onClick={() => setCalendarMode('camps')}
+                  className={`flex items-center gap-1 px-3 py-1 rounded-md transition-all text-sm font-medium ${
+                    calendarMode === 'camps' ? 'bg-white shadow text-gray-800' : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  🏕️ Camps
+              </button>
+            </div>
+          </div>
+
+            {/* Event Types - All Filter Buttons (Only for Monthly Events) */}
+            {calendarMode === 'monthly' && (
             <div className="flex justify-center items-center gap-2 mb-2">
               <button
                 onClick={() => setSelectedEventType('all')}
@@ -2592,6 +2638,7 @@ The system will add new events and update any changed events automatically.`;
                 CAMP
               </button>
             </div>
+            )}
 
           </div>
 
@@ -2805,6 +2852,7 @@ The system will add new events and update any changed events automatically.`;
                       const gymEvents = filteredEvents.filter(e => (e.gym_name || e.gym_code) === gym);
                       
                       
+                      
                       return (
                         <div
                           key={gym}
@@ -2812,6 +2860,7 @@ The system will add new events and update any changed events automatically.`;
                           className="grid hover:bg-gray-50 transition-colors"
                           style={{ gridTemplateColumns: `150px repeat(${displayDates.length}, 1fr)` }}
                         >
+
                           {/* Gym Name Column */}
                           <div className="p-2 font-medium border-r-2 bg-gray-50 flex items-center justify-center"
                                style={{ borderColor: theme.colors.primary }}>
@@ -2832,6 +2881,7 @@ The system will add new events and update any changed events automatically.`;
                                      eventDate.getMonth() === currentMonth && 
                                      eventDate.getDate() === date;
                             });
+
                             
                             // Debug: Log events for first gym to see what's happening
                             if (gym === allGymsFromList[0] && dateEvents.length > 0) {
@@ -2845,7 +2895,6 @@ The system will add new events and update any changed events automatically.`;
                                      style={{ color: theme.colors.textPrimary, fontSize: '10px', zIndex: 10 }}>
                                   {date}
                                 </div>
-                                
                                 
                                 <div className="space-y-1 pt-1">
                                   {dateEvents.length > 0 ? (

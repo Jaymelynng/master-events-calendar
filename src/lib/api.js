@@ -217,4 +217,57 @@ export const monthlyRequirementsApi = {
     if (error) throw new Error(error.message);
     return data || [];
   }
+};
+
+// Camps API - Separate table for camp management
+export const campsApi = {
+  async getAll(startDate, endDate) {
+    let query = supabase
+      .from('camps_with_gym')
+      .select('*')
+      .order('start_date', { ascending: true })
+    
+    if (startDate) {
+      query = query.gte('start_date', startDate)
+    }
+    if (endDate) {
+      query = query.lte('end_date', endDate)
+    }
+    
+    const { data, error } = await query
+    
+    if (error) throw new Error(error.message)
+    return data
+  },
+
+  async bulkImport(camps) {
+    if (!camps || !Array.isArray(camps) || camps.length === 0) {
+      throw new Error('Invalid camps data: must be non-empty array');
+    }
+    
+    // Validate each camp has required fields
+    for (let i = 0; i < camps.length; i++) {
+      const camp = camps[i];
+      if (!camp.gym_id || !camp.start_date || !camp.end_date || !camp.camp_url || !camp.title) {
+        throw new Error(`Camp ${i + 1} missing required fields (gym_id, title, start_date, end_date, camp_url)`);
+      }
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from('camps')
+        .insert(camps)
+        .select();
+      
+      if (error) {
+        console.error('Supabase camps import error:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      
+      return data || [];
+    } catch (networkError) {
+      console.error('Network error during camps import:', networkError);
+      throw new Error(`Failed to save camps: ${networkError.message}`);
+    }
+  }
 }; 
